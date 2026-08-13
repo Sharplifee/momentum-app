@@ -86,13 +86,19 @@ export async function GET(req: NextRequest) {
   }
 
   // Own forecast, not the CRM's. Before the split this proxied
-// crm.momentumlandscapingut.com/api/weather, which meant a customer's weather
-// card went blank whenever the CRM was mid-deploy — two products failing
-// together for no reason.
-  const base = "";
+  // crm.momentumlandscapingut.com/api/weather, which meant a customer's weather
+  // card went blank whenever the CRM was mid-deploy — two products failing
+  // together for no reason.
+  //
+  // fetch() on the server has no page to be relative to, so "/api/weather" threw
+  // and every request answered 503. The origin comes from the incoming request,
+  // which keeps this correct on preview deploys and locally as well as in
+  // production.
+  const self = req.nextUrl.origin;
+
   // The upstream route already caches for 15 minutes; caching again here only
   // stacks lag on top of it, so a customer could see a reading half an hour old.
-  const res = await fetch(`/api/weather?lat=${lat}&lng=${lng}`, {
+  const res = await fetch(`${self}/api/weather?lat=${lat}&lng=${lng}`, {
     cache: "no-store",
   }).catch(() => null);
   if (!res?.ok) return withCors({ error: "Weather isn't available right now." }, origin, 503);
