@@ -137,16 +137,17 @@ export async function POST(req: NextRequest) {
       expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
     });
 
-    await fetch("https://api.pingram.dev/v1/messages", {
+    await fetch("https://api.pingram.io/send", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.PINGRAM_API_KEY}`,
         "Content-Type": "application/json",
       },
+      // Shape matches the CRM's lib/sms.ts, which is the call known to deliver.
       body: JSON.stringify({
-        from: process.env.PINGRAM_FROM_NUMBER,
-        to: e164,
-        text: `${otp} is your Momentum code. It expires in 10 minutes.`,
+        type: "wayne_reply",
+        to: { id: e164, number: e164 },
+        sms: { message: `${otp} is your Momentum code. It expires in 10 minutes.` },
       }),
     }).catch(() => null);
 

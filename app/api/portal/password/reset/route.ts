@@ -43,14 +43,14 @@ export async function POST(req: NextRequest) {
     const { data: c } = await db.from("customers")
       .select("phone").ilike("email", String(email).trim()).maybeSingle();
     if (c?.phone) {
-      await fetch("https://api.pingram.dev/v1/messages", {
+      await fetch("https://api.pingram.io/send", {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.PINGRAM_API_KEY}`,
                    "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: process.env.PINGRAM_FROM_NUMBER,
-          to: c.phone,
-          text: `Reset your Momentum password: https://momentumlandscapingut.com/app#reset=${tok} — expires in an hour. Didn't ask for this? Ignore it.`,
+          type: "wayne_reply",
+          to: { id: c.phone, number: c.phone },
+          sms: { message: `Reset your Momentum password: https://momentumlandscapingut.com/app#reset=${tok} — expires in an hour. Didn't ask for this? Ignore it.` },
         }),
       }).catch(() => null);
     }
