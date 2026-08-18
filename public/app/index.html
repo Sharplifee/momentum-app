@@ -1086,13 +1086,6 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   min-height: 0;
   overflow: hidden;
 }
-/* Fine trim, one notch = 6px: the logo rides one notch high and the first
-   card two, so the top of the column reads as a tight cluster and the spare
-   air sits between the two cards. Relative offsets only — the flex metering
-   above is untouched, so nothing else moves. */
-.screen-home .home-hero { position: relative; top: -6px; }
-.screen-home .home-grid .ns-card { position: relative; top: -12px; }
-
 /* The frame is exact, so the page has nothing to bounce against. */
 html, body { overscroll-behavior: none; }
 </style>
