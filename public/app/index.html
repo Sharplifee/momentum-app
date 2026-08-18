@@ -840,71 +840,73 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .chat-empty-sub { font-size: 14px; line-height: 1.5; color: rgba(28,46,68,0.5); max-width: 300px; margin: 0 auto; }
 
 
-/* ── Home: logo and both tiles share the column ──────────────────────────────
-   The logo sat in its own padded box, narrower than the cards and capped at
-   240px, so the three elements never lined up — and the screen ended with a
-   band of empty space under the second tile.
-   The hero now uses exactly the grid's padding and the logo fills it edge to
-   edge, so its width IS the tile width. The two cards then take everything
-   left, in equal shares, so the column is filled rather than bottom-heavy. */
+/* ── Home: logo and both tiles, evenly through the column ────────────────────
+   The hero is INSIDE .home-grid, not beside it, and the two cards are nested
+   two levels further down in .home-content-grid > .home-col-main. An earlier
+   attempt gave .home-grid's direct children equal shares — which handed the
+   logo half the screen and squeezed both cards into the other half, clipping
+   the second one off the bottom.
+   So: the logo is sized by width (matching the cards, since it shares their
+   padding box) with a height ceiling; the cards keep their natural height; and
+   whatever is left over is distributed as even space between the three. */
 
 .screen-home {
-  display: flex;
-  flex-direction: column;
   height: calc(100dvh - var(--tabbar-h));
   min-height: 0 !important;
   overflow: hidden;
-  padding-top: clamp(6px, 1.6dvh, 20px);
-  gap: clamp(8px, 1.8dvh, 16px);
+  padding-top: 0;
 }
 
-/* Same horizontal padding as .home-grid — this is what makes the widths match. */
+.screen-home .home-grid {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;   /* the three blocks share the leftover space */
+  height: 100%;
+  min-height: 0;
+  gap: 0 !important;
+  padding: clamp(6px, 1.4dvh, 14px) 16px clamp(6px, 1.4dvh, 14px) !important;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* No padding of its own — it sits in the grid's box, so the logo's width is
+   exactly the cards' width. */
 .screen-home .home-hero {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-height: 0 !important;
   width: 100%;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 0 16px;
-  box-sizing: border-box;
+  padding: 0 !important;
   display: block;
 }
 .screen-home .home-hero .ml-logo { width: 100%; transform: none !important; padding: 0; display: block; }
 .screen-home .home-hero .ml-logo-img,
 .screen-home .home-hero .ml-logo img {
   width: 100% !important;
-  max-width: 100% !important;   /* the 240px cap is what held it narrow */
+  max-width: 100% !important;      /* the 240px cap is what held it narrow */
   height: auto !important;
-  /* Ceiling only, for short screens — width normally governs. */
-  max-height: 30dvh !important;
+  max-height: clamp(96px, 19dvh, 190px) !important;
   object-fit: contain !important;
   display: block;
   margin: 0 auto;
 }
 
-.screen-home .home-grid {
-  flex: 1 1 auto;
+/* The cards keep their natural height so neither is ever clipped. */
+.screen-home .home-content-grid {
+  flex: 0 1 auto;
   min-height: 0;
+  gap: clamp(10px, 1.8dvh, 16px) !important;
+}
+.screen-home .home-col-main {
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 2dvh, 16px) !important;
-  padding: 0 16px clamp(8px, 1.6dvh, 16px) !important;
-}
-/* Equal shares, so neither card is squeezed and no gap is left at the bottom. */
-.screen-home .home-grid > * {
-  flex: 1 1 0 !important;
+  gap: clamp(10px, 1.8dvh, 16px) !important;
   min-height: 0;
 }
-/* Cards grow, so their contents centre rather than sitting at the top. */
 .screen-home .ns-card,
 .screen-home .combo-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex: 0 0 auto;
+  padding: clamp(12px, 3.6vw, 22px) clamp(16px, 5vw, 28px);
 }
-
-.screen-home .ns-card { padding: clamp(12px, 3.8vw, 22px) clamp(16px, 5vw, 28px); }
-.screen-home .combo-card { padding: clamp(12px, 3.8vw, 22px) clamp(16px, 5vw, 28px); }
 
 .screen-home .ns-eyebrow { font-size: clamp(9.5px, 2.5vw, 11.5px); letter-spacing: 0.14em; }
 .screen-home .ns-headline { font-size: clamp(19px, 5.6vw, 27px); margin: clamp(4px, 1.4vw, 9px) 0 clamp(5px, 1.8vw, 11px); }
