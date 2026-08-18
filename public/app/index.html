@@ -742,10 +742,10 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 /* Home fits the frame. Nothing to scroll, no clipped card at the bottom, and
    the breathing room that only appeared after a swipe is now simply there. */
 .screen-home {
-  min-height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
-  overflow-y: auto;
-  padding-top: clamp(6px, 1.8vw, 20px);
-  gap: clamp(6px, 1.4dvh, 14px);
+  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
+  overflow: hidden;
+  padding-top: 0;
+  gap: 0;
 }
 .screen-home .home-grid {
   flex: 1 1 auto;
@@ -852,23 +852,31 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 /* Height is a floor, not a ceiling. Fixed height + overflow:hidden meant that on
    a real Safari viewport (~640pt visible, not the 874pt of the raw screen) the
    column was 92pt shorter than its own content: the second card was cut in half
-   and the logo was painted over the first one. The frame gives what it has and
-   scrolls for the rest. */
+   and the logo was painted over the first one.
+   The frame is exact and nothing scrolls: the logo is the one flexible element
+   in the column (see the lock block at the end of the head), so it gives up
+   height on short screens instead of the layout giving up a card. */
 .screen-home {
-  min-height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
-  overflow-y: auto;
+  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
+  overflow: hidden;
   padding-top: 0;
 }
 
 .screen-home .home-grid {
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;   /* the three blocks share the leftover space */
+  justify-content: space-evenly;
+  height: 100%;
   min-height: 0;
-  gap: 0 !important;
-  /* Widening this shrinks the logo and both cards together, by the same
-     amount, so they stay aligned while the whole column comes down a notch. */
-  padding: clamp(6px, 1.6vw, 14px) clamp(20px, 5.6vw, 30px) clamp(6px, 1.6vw, 14px) !important;
+  /* 10px is the floor every one of the four gaps is guaranteed (gap between
+     blocks, padding above and below), and the logo shrinks before any gap
+     does. Whatever space is left over, space-evenly adds to all four in equal
+     shares — so the gaps stay identical at every size: top bar to logo, logo
+     to card, card to card, card to tab bar. The two card wrappers are
+     flattened (display: contents, in the lock block) so the column is exactly
+     three blocks and the card-to-card gap is metered the same as the rest. */
+  gap: 10px !important;
+  padding: 10px clamp(20px, 5.6vw, 30px) !important;
   box-sizing: border-box;
 }
 
@@ -1017,19 +1025,26 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
    because one of the earlier rules caps it at min(300px, 78vw), which is what
    was making it wider or narrower than the cards depending on screen size. */
 .screen-home .home-hero {
-  /* Never shrink. A shrunken box does not shrink the image inside it; it just
-     lets the image spill out over the card below. */
-  flex: 0 0 auto !important;
+  /* The one flexible element in the column. The box carries the artwork's
+     aspect ratio, so at full size the logo is exactly the cards' width; when
+     the viewport can't fit logo + both cards, the box shrinks (the cards are
+     flex-shrink: 0 below) and the image inside scales down with it via
+     height: 100% + object-fit: contain — it can never spill over a card. */
+  /* Shrink weight 1000: the logo yields virtually all deficit before the
+     cards (weight 1, below) give a single point. */
+  flex: 0 1000 auto !important;
+  aspect-ratio: 497 / 300;
   width: 100% !important;
   min-height: 0 !important;
-  /* The logo sat flush against the first card. */
-  margin: 0 0 clamp(10px, 3vw, 20px) 0 !important;
+  /* No margin: all four gaps come from space-evenly, so they stay equal. */
+  margin: 0 !important;
   padding: 0 !important;
   max-width: none !important;
   display: block !important;
 }
 .screen-home .home-hero .ml-logo {
   width: 100% !important;
+  height: 100% !important;
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -1038,22 +1053,41 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
 }
 .screen-home .home-hero .ml-logo-img,
 .screen-home .home-hero .ml-logo img {
+  /* Fill the hero box and contain: when the box is at its natural
+     aspect-ratio height the artwork fills it edge to edge (logo width equals
+     card width); when the box has been shrunk the artwork scales down inside
+     it, centred, and never overflows. */
   width: 100% !important;
+  height: 100% !important;
   max-width: none !important;
-  min-width: 0 !important;
-  height: auto !important;
-  /* No dvh. In a WebView the first paint measures a viewport that has not
-     settled, so any dvh value renders larger and then corrects on the next
-     render — which is exactly the two sizes seen on Home. Width already
-     decides this element; the ceiling is expressed as a ratio of that width,
-     so it needs no viewport measurement and cannot change between renders. */
   max-height: none !important;
-  aspect-ratio: 497 / 300;
+  min-width: 0 !important;
   object-fit: contain !important;
+  /* The asset has 3px of empty pixels on its right edge and none on its left
+     (ink bbox 0..494 of 497), so dead-centre lands the ink a hair left. */
+  object-position: 50.3% 50%;
   display: block !important;
   margin: 0 !important;
   transform: none !important;
 }
+
+/* Flatten the two layout-only wrappers so the cards sit directly in the
+   grid's flex column — that is what lets space-evenly meter the card-to-card
+   gap with the same share as every other gap. */
+.screen-home .home-content-grid,
+.screen-home .home-col-main {
+  display: contents !important;
+}
+/* Cards give ground only as a last resort — the logo's shrink weight is
+   1000× theirs, so a card loses its first point of padding only on a screen
+   where the logo has already shrunk to nothing. Never a gap, never a clip. */
+.screen-home .home-grid .card {
+  flex: 0 1 auto !important;
+  min-height: 0;
+  overflow: hidden;
+}
+/* The frame is exact, so the page has nothing to bounce against. */
+html, body { overscroll-behavior: none; }
 </style>
 </head>
 <body>
