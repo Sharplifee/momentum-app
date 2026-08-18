@@ -864,7 +864,9 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   height: 100%;
   min-height: 0;
   gap: 0 !important;
-  padding: clamp(6px, 1.4dvh, 14px) 16px clamp(6px, 1.4dvh, 14px) !important;
+  /* Widening this shrinks the logo and both cards together, by the same
+     amount, so they stay aligned while the whole column comes down a notch. */
+  padding: clamp(6px, 1.4dvh, 14px) clamp(20px, 5.6vw, 30px) clamp(6px, 1.4dvh, 14px) !important;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -891,7 +893,10 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   max-height: clamp(150px, 27dvh, 260px) !important;
   object-fit: contain !important;
   display: block;
-  margin: 0 auto;
+  /* The asset has 3px of empty pixels on its right edge and none on its left
+     (ink bbox 0..494 of 497), so filling the box lands it a hair left of
+     centre. Offset by half that imbalance, in percent so it holds at any size. */
+  margin: 0 auto 0 calc(0.3%);
 }
 
 /* The cards keep their natural height so neither is ever clipped. */
@@ -909,13 +914,13 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .screen-home .ns-card,
 .screen-home .combo-card {
   flex: 0 0 auto;
-  padding: clamp(12px, 3.6vw, 22px) clamp(16px, 5vw, 28px);
+  padding: clamp(11px, 3.3vw, 20px) clamp(14px, 4.5vw, 26px);
 }
 
 .screen-home .ns-eyebrow { font-size: clamp(9.5px, 2.5vw, 11.5px); letter-spacing: 0.14em; }
-.screen-home .ns-headline { font-size: clamp(19px, 5.6vw, 27px); margin: clamp(4px, 1.4vw, 9px) 0 clamp(5px, 1.8vw, 11px); }
-.screen-home .nw-val { font-size: clamp(21px, 6.2vw, 30px); }
-.screen-home .nw-emoji { font-size: clamp(18px, 5.2vw, 26px); }
+.screen-home .ns-headline { font-size: clamp(18px, 5.2vw, 25px); margin: clamp(4px, 1.4vw, 9px) 0 clamp(5px, 1.8vw, 11px); }
+.screen-home .nw-val { font-size: clamp(20px, 5.8vw, 28px); }
+.screen-home .nw-emoji { font-size: clamp(17px, 4.9vw, 24px); }
 .screen-home .ns-context { font-size: clamp(9.5px, 2.7vw, 12px); }
 
 .screen-home .cs-letter { font-size: clamp(10px, 2.9vw, 13px); }
@@ -988,7 +993,10 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   height: auto !important;
   object-fit: contain !important;
   display: block;
-  margin: 0 auto;
+  /* The asset has 3px of empty pixels on its right edge and none on its left
+     (ink bbox 0..494 of 497), so filling the box lands it a hair left of
+     centre. Offset by half that imbalance, in percent so it holds at any size. */
+  margin: 0 auto 0 calc(0.3%);
 }
 /* Nothing in the boot screen should draw a rule either. */
 .nw-loading, .nw-loading * {
