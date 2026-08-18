@@ -742,9 +742,8 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 /* Home fits the frame. Nothing to scroll, no clipped card at the bottom, and
    the breathing room that only appeared after a swipe is now simply there. */
 .screen-home {
-  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
-  min-height: 0 !important;
-  overflow: hidden;
+  min-height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
+  overflow-y: auto;
   padding-top: clamp(6px, 1.8vw, 20px);
   gap: clamp(6px, 1.4dvh, 14px);
 }
@@ -850,10 +849,14 @@ img, svg, video, canvas { max-width: 100%; height: auto }
    padding box) with a height ceiling; the cards keep their natural height; and
    whatever is left over is distributed as even space between the three. */
 
+/* Height is a floor, not a ceiling. Fixed height + overflow:hidden meant that on
+   a real Safari viewport (~640pt visible, not the 874pt of the raw screen) the
+   column was 92pt shorter than its own content: the second card was cut in half
+   and the logo was painted over the first one. The frame gives what it has and
+   scrolls for the rest. */
 .screen-home {
-  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
-  min-height: 0 !important;
-  overflow: hidden;
+  min-height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
+  overflow-y: auto;
   padding-top: 0;
 }
 
@@ -861,14 +864,12 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;   /* the three blocks share the leftover space */
-  height: 100%;
   min-height: 0;
   gap: 0 !important;
   /* Widening this shrinks the logo and both cards together, by the same
      amount, so they stay aligned while the whole column comes down a notch. */
   padding: clamp(6px, 1.6vw, 14px) clamp(20px, 5.6vw, 30px) clamp(6px, 1.6vw, 14px) !important;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 /* No padding of its own — it sits in the grid's box, so the logo's width is
@@ -1016,7 +1017,9 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
    because one of the earlier rules caps it at min(300px, 78vw), which is what
    was making it wider or narrower than the cards depending on screen size. */
 .screen-home .home-hero {
-  flex: 0 1 auto !important;
+  /* Never shrink. A shrunken box does not shrink the image inside it; it just
+     lets the image spill out over the card below. */
+  flex: 0 0 auto !important;
   width: 100% !important;
   min-height: 0 !important;
   /* The logo sat flush against the first card. */
@@ -3739,7 +3742,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
    The photo drifts slowly and parallaxes against scroll. Slow enough to read
    as depth rather than motion, and disabled outright for anyone who has asked
    the system for reduced motion. */
-.home-hero,.app-bg{will-change:transform}
+.app-bg{will-change:transform}
 @keyframes mlDrift{
   0%{transform:scale(1.10) translate3d(0,0,0)}
   50%{transform:scale(1.14) translate3d(-1.2%,-1.4%,0)}
@@ -3750,27 +3753,26 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 </style>
 <script>
 (function(){
-  /* Parallax: the background moves at a third of scroll speed. */
-  function bind(){
-    var bg = document.querySelector('.home-hero') || document.querySelector('.app-bg');
-    if(!bg) return false;
-    bg.classList.add('ml-parallax');
-    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduce) return true;
-    var ticking=false;
-    var scroller = document.querySelector('.home-grid') || window;
-    function onScroll(){
-      if(ticking) return; ticking=true;
-      requestAnimationFrame(function(){
-        var y = (scroller===window? window.scrollY : scroller.scrollTop) || 0;
-        bg.style.setProperty('--ml-par', (y*0.34).toFixed(1)+'px');
-        bg.style.backgroundPositionY = 'calc(50% + ' + (y*0.34).toFixed(1) + 'px)';
-        ticking=false;
-      });
-    }
-    (scroller===window?window:scroller).addEventListener('scroll',onScroll,{passive:true});
-    return true;
-  }
+  /* The background parallax belongs to the React LandscapeBG component, which
+     drives .bg-photo directly. What used to sit here was a second, older copy
+     of that idea, and it was the home logo bug:
+
+       - it selected '.home-hero' — the logo's own layout box, not a background
+         (its intended target, '.app-bg', does not exist in the DOM at all), and
+       - added .ml-parallax to it, whose mlDrift keyframes animate
+         transform: scale(1.10 -> 1.14). Layout width was never wrong: the hero
+         measured exactly the cards' width, then rendered 10-14% wider, and
+         drifting, because an ancestor was scaled.
+       - it ran once and then cleared its interval, so only the first .home-hero
+         ever got the class. Navigating to a tab and back remounted the hero
+         without it. That is the second size, and why the logo was wrong in two
+         different directions.
+       - its scroll work was inert regardless: backgroundPositionY on an element
+         with no background image, on a '.home-grid' that is overflow:hidden and
+         never scrolls.
+
+     transform:none !important on .ml-logo could never have caught this, because
+     the transform was on the parent. Only the day chips below were ever real. */
   /* Day chips select rather than navigate. */
   function chips(){
     var strip = document.querySelector('.calstrip');
@@ -3793,7 +3795,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   }
   var tries=0;
   var t=setInterval(function(){
-    var ok = bind() && chips();
+    var ok = chips();
     if(ok || ++tries>40) clearInterval(t);
   },250);
 })();
