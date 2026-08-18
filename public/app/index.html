@@ -1806,8 +1806,17 @@ function useWeather(address, date) {
         // are asked at once. The backend answer replaces the other if it lands
         // second, so what you end up looking at is always the authoritative one.
         const addr = address || "South Jordan, UT";
-        const authoritative = (window.MLLive ? window.MLLive.weather(addr, date, coords) : Promise.resolve(null)).catch(() => null);
-        const quick = (window.MLMock ? window.MLMock.weather(addr, date, coords) : Promise.resolve(null)).catch(() => null);
+
+        // The second source geocodes an address string, so it cannot answer at
+        // all when the customer has no property on file and the device gave us
+        // coordinates — it was returning null while the card waited on it.
+        // Both are raced, but nothing waits on the one that cannot answer.
+        const authoritative = (window.MLLive
+          ? window.MLLive.weather(addr, date, coords)
+          : Promise.resolve(null)).catch(() => null);
+        const quick = (window.MLMock && !coords
+          ? window.MLMock.weather(addr, date)
+          : Promise.resolve(null)).catch(() => null);
 
         let shown = false;
         const show = (raw) => {
@@ -1817,10 +1826,17 @@ function useWeather(address, date) {
         };
 
         quick.then((raw) => { if (!shown) show(raw); });
-        const raw = await authoritative;
+
+        // A request that never settles leaves the card on "Loading forecast…"
+        // forever, which is what a customer actually sees when the network
+        // stalls. Give the race a hard ceiling and fall through to the error
+        // branch, which at least shows something and lets the next refresh
+        // tick retry.
+        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 9000));
+        const raw = await Promise.race([authoritative, timeout]);
         if (cancelled) return;
         if (raw) { show(raw); return; }
-        const fallback = await quick;
+        const fallback = await Promise.race([quick, timeout]);
         if (cancelled) return;
         if (fallback) { show(fallback); return; }
         throw new Error("no weather data");
