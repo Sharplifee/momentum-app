@@ -839,6 +839,15 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .chat-empty-title { font-size: 17px; font-weight: 700; color: rgba(28,46,68,0.75); margin-bottom: 6px; }
 .chat-empty-sub { font-size: 14px; line-height: 1.5; color: rgba(28,46,68,0.5); max-width: 300px; margin: 0 auto; }
 
+/* Any text field under 16px makes iOS zoom the page on focus. Stated here,
+   last and with !important, so no more specific rule can undercut it — the
+   message composer at 14px is what was zooming the app with no way back. */
+input[type="text"], input[type="email"], input[type="tel"], input[type="password"],
+input[type="search"], input[type="number"], input:not([type]), select, textarea,
+.chat-input input, .lf-input, .qf-input, .qf-select {
+  font-size: 16px !important;
+}
+
 /* Day strip: the day you are reading is filled, a service day carries a dot.
    Filling the service day made it look selected on a day it was not. */
 .calstrip .cs-day {
@@ -3684,15 +3693,29 @@ input, select, textarea { font-size: 16px }
   new MutationObserver(label).observe(document.documentElement,
     { childList: true, subtree: true });
 
-  /* A double-tap on iOS zooms the page and there is no way back without a
-     reload. Nothing here needs pinch zoom. */
-  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  /* Double-tap zoom is suppressed because nothing here benefits from it.
+     Pinch is deliberately NOT blocked any more: blocking it removed the only
+     way back out if the page ever did zoom, which left the app stuck at 2x
+     with no escape short of force-quitting. Fields are 16px so focus no longer
+     zooms in the first place; pinch stays available as the way out. */
   var last = 0;
   document.addEventListener('touchend', function (e) {
     var now = Date.now();
     if (now - last <= 320) e.preventDefault();
     last = now;
   }, { passive: false });
+
+  /* If a zoom does happen, put it back when the field is done. Safari reports
+     it on visualViewport; nothing else can read the page scale reliably. */
+  document.addEventListener('focusout', function () {
+    if (window.visualViewport && window.visualViewport.scale > 1.01) {
+      var vp = document.querySelector('meta[name="viewport"]');
+      if (!vp) return;
+      var original = vp.getAttribute('content');
+      vp.setAttribute('content', original + ', maximum-scale=1');
+      setTimeout(function () { vp.setAttribute('content', original); }, 300);
+    }
+  });
 })();
 </script>
 
