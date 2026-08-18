@@ -3739,7 +3739,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
    The photo drifts slowly and parallaxes against scroll. Slow enough to read
    as depth rather than motion, and disabled outright for anyone who has asked
    the system for reduced motion. */
-.home-hero,.app-bg{will-change:transform}
+.app-bg{will-change:transform}
 @keyframes mlDrift{
   0%{transform:scale(1.10) translate3d(0,0,0)}
   50%{transform:scale(1.14) translate3d(-1.2%,-1.4%,0)}
@@ -3750,27 +3750,26 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 </style>
 <script>
 (function(){
-  /* Parallax: the background moves at a third of scroll speed. */
-  function bind(){
-    var bg = document.querySelector('.home-hero') || document.querySelector('.app-bg');
-    if(!bg) return false;
-    bg.classList.add('ml-parallax');
-    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduce) return true;
-    var ticking=false;
-    var scroller = document.querySelector('.home-grid') || window;
-    function onScroll(){
-      if(ticking) return; ticking=true;
-      requestAnimationFrame(function(){
-        var y = (scroller===window? window.scrollY : scroller.scrollTop) || 0;
-        bg.style.setProperty('--ml-par', (y*0.34).toFixed(1)+'px');
-        bg.style.backgroundPositionY = 'calc(50% + ' + (y*0.34).toFixed(1) + 'px)';
-        ticking=false;
-      });
-    }
-    (scroller===window?window:scroller).addEventListener('scroll',onScroll,{passive:true});
-    return true;
-  }
+  /* The background parallax belongs to the React LandscapeBG component, which
+     drives .bg-photo directly. What used to sit here was a second, older copy
+     of that idea, and it was the home logo bug:
+
+       - it selected '.home-hero' — the logo's own layout box, not a background
+         (its intended target, '.app-bg', does not exist in the DOM at all), and
+       - added .ml-parallax to it, whose mlDrift keyframes animate
+         transform: scale(1.10 -> 1.14). Layout width was never wrong: the hero
+         measured exactly the cards' width, then rendered 10-14% wider, and
+         drifting, because an ancestor was scaled.
+       - it ran once and then cleared its interval, so only the first .home-hero
+         ever got the class. Navigating to a tab and back remounted the hero
+         without it. That is the second size, and why the logo was wrong in two
+         different directions.
+       - its scroll work was inert regardless: backgroundPositionY on an element
+         with no background image, on a '.home-grid' that is overflow:hidden and
+         never scrolls.
+
+     transform:none !important on .ml-logo could never have caught this, because
+     the transform was on the parent. Only the day chips below were ever real. */
   /* Day chips select rather than navigate. */
   function chips(){
     var strip = document.querySelector('.calstrip');
@@ -3793,7 +3792,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   }
   var tries=0;
   var t=setInterval(function(){
-    var ok = bind() && chips();
+    var ok = chips();
     if(ok || ++tries>40) clearInterval(t);
   },250);
 })();
