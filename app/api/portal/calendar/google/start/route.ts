@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
   });
 
-  const redirect = `${process.env.CRM_ORIGIN ?? "https://crm.momentumlandscapingut.com"}/api/portal/calendar/google/callback`;
+  const redirect = `${req.nextUrl.origin}/api/portal/calendar/google/callback`;
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirect);

@@ -37,7 +37,7 @@ display:grid;place-items:center;min-height:100dvh;margin:0;padding:24px;text-ali
       code,
       client_id: process.env.GOOGLE_CLIENT_ID ?? "",
       client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      redirect_uri: `${process.env.CRM_ORIGIN ?? "https://crm.momentumlandscapingut.com"}/api/portal/calendar/google/callback`,
+      redirect_uri: `${req.nextUrl.origin}/api/portal/calendar/google/callback`,
       grant_type: "authorization_code",
     }),
   }).catch(() => null);

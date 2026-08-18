@@ -30,6 +30,6 @@ export async function POST(req: NextRequest) {
   );
   return withCors({
     ok: true, connected: true,
-    feed_url: `webcal://crm.momentumlandscapingut.com/api/portal/calendar/feed/${customer_id}.ics`,
+    feed_url: `webcal://${req.nextUrl.host}/api/portal/calendar/feed/${customer_id}.ics`,
   }, origin);
 }
