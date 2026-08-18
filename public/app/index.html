@@ -988,22 +988,16 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   box-shadow: none !important;
   background: transparent !important;
 }
+/* .ml-logo width:auto !important removed — it shrank the wrapper to the image's
+   intrinsic size, so the image's width:100% resolved against the artwork rather
+   than the container. That is the second of the two home logo sizes. */
 .ml-logo {
-  width: auto !important;
   max-width: 100%;
   margin-inline: auto;
 }
-.ml-logo-img {
-  width: auto !important;          /* the artwork decides, not the screen */
-  max-width: min(300px, 78vw);
-  height: auto !important;
-  object-fit: contain !important;
-  display: block;
-  /* The asset has 3px of empty pixels on its right edge and none on its left
-     (ink bbox 0..494 of 497), so filling the box lands it a hair left of
-     centre. Offset by half that imbalance, in percent so it holds at any size. */
-  margin: 0 auto 0 calc(0.3%);
-}
+/* removed: width:auto + max-width:min(300px,78vw) — the last rule able to
+   size the logo independently of its container. */
+
 /* Nothing in the boot screen should draw a rule either. */
 .nw-loading, .nw-loading * {
   border: 0 !important;
@@ -1021,16 +1015,17 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
    a content box — the logo simply fills it. `max-width: none` is required
    because one of the earlier rules caps it at min(300px, 78vw), which is what
    was making it wider or narrower than the cards depending on screen size. */
-.screen-home .home-grid > .home-hero {
+.screen-home .home-hero {
   flex: 0 1 auto !important;
   width: 100% !important;
   min-height: 0 !important;
-  margin: 0 !important;
+  /* The logo sat flush against the first card. */
+  margin: 0 0 clamp(10px, 3vw, 20px) 0 !important;
   padding: 0 !important;
   max-width: none !important;
   display: block !important;
 }
-.screen-home .home-grid > .home-hero > .ml-logo {
+.screen-home .home-hero .ml-logo {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
@@ -1038,8 +1033,8 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   transform: none !important;
   display: block !important;
 }
-.screen-home .home-grid > .home-hero > .ml-logo > .ml-logo-img,
-.screen-home .home-grid > .home-hero > .ml-logo > img {
+.screen-home .home-hero .ml-logo-img,
+.screen-home .home-hero .ml-logo img {
   width: 100% !important;
   max-width: none !important;
   min-width: 0 !important;
