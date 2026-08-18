@@ -1004,6 +1004,47 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   outline: 0 !important;
 }
 </style>
+<style id="ml-logo-lock">
+/* ── The home logo, stated once and last ─────────────────────────────────────
+   Nine separate rules target .ml-logo-img, several with !important, left over
+   from repeated attempts at this. Arguing with them by adding a tenth is how
+   the size kept drifting. This is a single authoritative rule at a specificity
+   none of the others reach.
+
+   The logo and the cards are siblings inside .home-grid, so they already share
+   a content box — the logo simply fills it. `max-width: none` is required
+   because one of the earlier rules caps it at min(300px, 78vw), which is what
+   was making it wider or narrower than the cards depending on screen size. */
+.screen-home .home-grid > .home-hero {
+  flex: 0 1 auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
+  display: block !important;
+}
+.screen-home .home-grid > .home-hero > .ml-logo {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  display: block !important;
+}
+.screen-home .home-grid > .home-hero > .ml-logo > .ml-logo-img,
+.screen-home .home-grid > .home-hero > .ml-logo > img {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: clamp(150px, 27dvh, 260px) !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -2145,8 +2186,8 @@ window.MLMock = Mock;
 // Momentum Landscaping — real logo asset
 function MomentumLogo({ size = 1 }) {
   return (
-    <div className="ml-logo" style={{ transform: `scale(${size})` }}>
-      <img src={window.ML_LOGO_SRC || "assets/momentum-logo-v4-cropped.png"} alt="Momentum Landscaping" className="ml-logo-img" style={{ objectFit: "contain", height: "160px" }} />
+    <div className={`ml-logo${size !== 1 ? " ml-logo-scaled" : ""}`} style={size !== 1 ? { transform: `scale(${size})` } : undefined}>
+      <img src={window.ML_LOGO_SRC || "assets/momentum-logo-v4-cropped.png"} alt="Momentum Landscaping" className="ml-logo-img" />
     </div>);
 
 }
@@ -3783,45 +3824,6 @@ input, select, textarea { font-size: 16px }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important;
     animation-iteration-count: 1 !important; transition-duration: .01ms !important }
-}
-/* ── The home logo, stated once and last ─────────────────────────────────────
-   Nine separate rules target .ml-logo-img, several with !important, left over
-   from repeated attempts at this. Arguing with them by adding a tenth is how
-   the size kept drifting. This is a single authoritative rule at a specificity
-   none of the others reach.
-
-   The logo and the cards are siblings inside .home-grid, so they already share
-   a content box — the logo simply fills it. `max-width: none` is required
-   because one of the earlier rules caps it at min(300px, 78vw), which is what
-   was making it wider or narrower than the cards depending on screen size. */
-.screen-home .home-grid > .home-hero {
-  flex: 0 1 auto !important;
-  width: 100% !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  max-width: none !important;
-  display: block !important;
-}
-.screen-home .home-grid > .home-hero > .ml-logo {
-  width: 100% !important;
-  max-width: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  transform: none !important;
-  display: block !important;
-}
-.screen-home .home-grid > .home-hero > .ml-logo > .ml-logo-img,
-.screen-home .home-grid > .home-hero > .ml-logo > img {
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  height: auto !important;
-  max-height: clamp(150px, 27dvh, 260px) !important;
-  object-fit: contain !important;
-  display: block !important;
-  margin: 0 !important;
-  transform: none !important;
 }
 </style>
 </body>
