@@ -3784,100 +3784,45 @@ input, select, textarea { font-size: 16px }
   *, *::before, *::after { animation-duration: .01ms !important;
     animation-iteration-count: 1 !important; transition-duration: .01ms !important }
 }
+/* ── The home logo, stated once and last ─────────────────────────────────────
+   Nine separate rules target .ml-logo-img, several with !important, left over
+   from repeated attempts at this. Arguing with them by adding a tenth is how
+   the size kept drifting. This is a single authoritative rule at a specificity
+   none of the others reach.
+
+   The logo and the cards are siblings inside .home-grid, so they already share
+   a content box — the logo simply fills it. `max-width: none` is required
+   because one of the earlier rules caps it at min(300px, 78vw), which is what
+   was making it wider or narrower than the cards depending on screen size. */
+.screen-home .home-grid > .home-hero {
+  flex: 0 1 auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
+  display: block !important;
+}
+.screen-home .home-grid > .home-hero > .ml-logo {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  display: block !important;
+}
+.screen-home .home-grid > .home-hero > .ml-logo > .ml-logo-img,
+.screen-home .home-grid > .home-hero > .ml-logo > img {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: clamp(150px, 27dvh, 260px) !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 !important;
+  transform: none !important;
+}
 </style>
-<script>
-(function () {
-  /* Most controls had no accessible name, so VoiceOver announced "button".
-     Falling back to the visible text is better than silence. */
-  function label() {
-    document.querySelectorAll('button, [role="button"]').forEach(function (b) {
-      if (b.getAttribute('aria-label')) return;
-      var t = (b.textContent || '').trim().replace(/\s+/g, ' ');
-      if (t) b.setAttribute('aria-label', t.slice(0, 60));
-    });
-  }
-  label();
-  new MutationObserver(label).observe(document.documentElement,
-    { childList: true, subtree: true });
-
-  /* Double-tap zoom is suppressed because nothing here benefits from it.
-     Pinch is deliberately NOT blocked any more: blocking it removed the only
-     way back out if the page ever did zoom, which left the app stuck at 2x
-     with no escape short of force-quitting. Fields are 16px so focus no longer
-     zooms in the first place; pinch stays available as the way out. */
-  var last = 0;
-  document.addEventListener('touchend', function (e) {
-    var now = Date.now();
-    if (now - last <= 320) e.preventDefault();
-    last = now;
-  }, { passive: false });
-
-  /* If a zoom does happen, put it back when the field is done. Safari reports
-     it on visualViewport; nothing else can read the page scale reliably. */
-  document.addEventListener('focusout', function () {
-    if (window.visualViewport && window.visualViewport.scale > 1.01) {
-      var vp = document.querySelector('meta[name="viewport"]');
-      if (!vp) return;
-      var original = vp.getAttribute('content');
-      vp.setAttribute('content', original + ', maximum-scale=1');
-      setTimeout(function () { vp.setAttribute('content', original); }, 300);
-    }
-  });
-})();
-</script>
-
-<script>
-/* Push registration bridge — customer iOS shell.
-   The shell (github.com/Sharplifee/momentum-customer) hands over the APNs
-   device token it got from iOS; this page owns the signed-in customer, so the
-   two are joined here rather than natively. In a plain browser no token ever
-   arrives and none of this runs.
-   Registration needs both halves and they land in either order, so each half
-   just tries again once it has the other. */
-(function () {
-  var API = (window.MLConfig && window.MLConfig.apiBase) || "";
-  var sent = null;
-
-  function customerId() {
-    try {
-      var u = JSON.parse(sessionStorage.getItem("ml_user") || "null");
-      return (u && u.id) || null;
-    } catch (e) { return null; }
-  }
-
-  function attempt() {
-    var push = window.__momentumPush;
-    var id = customerId();
-    if (!push || !push.token || !id) return;
-    var key = id + ":" + push.token;
-    if (sent === key) return;
-    sent = key;
-    fetch(API + "/push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customer_id: id,
-        token: push.token,
-        bundle_id: push.bundleId,
-        app_version: push.appVersion,
-        platform: "ios"
-      })
-    }).catch(function () {
-      /* The shell re-injects on every launch, so a dropped registration
-         repairs itself next time the app opens. */
-      sent = null;
-    });
-  }
-
-  window.momentumRegisterPush = function (token, bundleId, appVersion) {
-    window.__momentumPush = { token: token, bundleId: bundleId, appVersion: appVersion };
-    attempt();
-  };
-
-  /* The customer signs in some time after the token arrives, so watch for it. */
-  setInterval(attempt, 2000);
-  attempt();
-})();
-</script>
 </body>
 </html>
