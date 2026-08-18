@@ -742,10 +742,10 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 /* Home fits the frame. Nothing to scroll, no clipped card at the bottom, and
    the breathing room that only appeared after a swipe is now simply there. */
 .screen-home {
-  height: calc(100dvh - var(--tabbar-h));
+  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
   min-height: 0 !important;
   overflow: hidden;
-  padding-top: clamp(6px, 1.6dvh, 20px);
+  padding-top: clamp(6px, 1.8vw, 20px);
   gap: clamp(6px, 1.4dvh, 14px);
 }
 .screen-home .home-grid {
@@ -851,7 +851,7 @@ img, svg, video, canvas { max-width: 100%; height: auto }
    whatever is left over is distributed as even space between the three. */
 
 .screen-home {
-  height: calc(100dvh - var(--tabbar-h));
+  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
   min-height: 0 !important;
   overflow: hidden;
   padding-top: 0;
@@ -866,7 +866,7 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   gap: 0 !important;
   /* Widening this shrinks the logo and both cards together, by the same
      amount, so they stay aligned while the whole column comes down a notch. */
-  padding: clamp(6px, 1.4dvh, 14px) clamp(20px, 5.6vw, 30px) clamp(6px, 1.4dvh, 14px) !important;
+  padding: clamp(6px, 1.6vw, 14px) clamp(20px, 5.6vw, 30px) clamp(6px, 1.6vw, 14px) !important;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -890,7 +890,13 @@ img, svg, video, canvas { max-width: 100%; height: auto }
      as the cards. The ceiling only exists so a short phone does not lose a
      card to it, so it sits just above the width-driven height (218px at 393pt)
      rather than cutting in below it. */
-  max-height: clamp(150px, 27dvh, 260px) !important;
+  /* No dvh. In a WebView the first paint measures a viewport that has not
+     settled, so any dvh value renders larger and then corrects on the next
+     render — which is exactly the two sizes seen on Home. Width already
+     decides this element; the ceiling is expressed as a ratio of that width,
+     so it needs no viewport measurement and cannot change between renders. */
+  max-height: none !important;
+  aspect-ratio: 497 / 300;
   object-fit: contain !important;
   display: block;
   /* The asset has 3px of empty pixels on its right edge and none on its left
@@ -903,12 +909,12 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .screen-home .home-content-grid {
   flex: 0 1 auto;
   min-height: 0;
-  gap: clamp(10px, 1.8dvh, 16px) !important;
+  gap: clamp(10px, 2.4vw, 16px) !important;
 }
 .screen-home .home-col-main {
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 1.8dvh, 16px) !important;
+  gap: clamp(10px, 2.4vw, 16px) !important;
   min-height: 0;
 }
 .screen-home .ns-card,
@@ -1038,7 +1044,13 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   max-width: none !important;
   min-width: 0 !important;
   height: auto !important;
-  max-height: clamp(150px, 27dvh, 260px) !important;
+  /* No dvh. In a WebView the first paint measures a viewport that has not
+     settled, so any dvh value renders larger and then corrects on the next
+     render — which is exactly the two sizes seen on Home. Width already
+     decides this element; the ceiling is expressed as a ratio of that width,
+     so it needs no viewport measurement and cannot change between renders. */
+  max-height: none !important;
+  aspect-ratio: 497 / 300;
   object-fit: contain !important;
   display: block !important;
   margin: 0 !important;
