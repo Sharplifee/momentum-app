@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSign } from "crypto";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const revalidate = 900; // Apple rate-limits; a 15-minute forecast is plenty
@@ -130,6 +131,103 @@ const cToF = (c: number | undefined) => (typeof c === "number" ? Math.round((c *
  * up here: high, low, the worst precipitation probability, the strongest wind,
  * and the condition at midday as the day's character.
  */
+
+/**
+ * The US National Weather Service.
+ *
+ * The government forecast for the service area: no key, no account, no contract
+ * to lapse, and it is the source most US weather apps are ultimately quoting.
+ * It is US-only and answers 404 elsewhere, which is why it sits alongside the
+ * global providers rather than replacing them.
+ *
+ * Two calls are needed — coordinates resolve to a forecast grid, and the grid
+ * has the forecast. Current temperature comes from the hourly series rather
+ * than the nearest station, because station readings are frequently null.
+ */
+async function fromNws(lat: number, lng: number) {
+  const UA = { "User-Agent": "MomentumLandscaping/1.0 (admin@momentumlandscapingut.com)" };
+
+  const pt = await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lng.toFixed(4)}`, {
+    headers: UA, next: { revalidate: 86400 },
+  }).catch(() => null);
+  if (!pt?.ok) return null;                       // 404 outside the US — expected, not an error
+
+  const pj = await pt.json().catch(() => null);
+  const daily = pj?.properties?.forecast;
+  const hourly = pj?.properties?.forecastHourly;
+  if (!daily || !hourly) return null;
+
+  const [dRes, hRes] = await Promise.all([
+    fetch(daily, { headers: UA, next: { revalidate: 900 } }).catch(() => null),
+    fetch(hourly, { headers: UA, next: { revalidate: 900 } }).catch(() => null),
+  ]);
+  if (!dRes?.ok) return null;
+
+  const periods: any[] = (await dRes.json().catch(() => null))?.properties?.periods ?? [];
+  if (!periods.length) return null;
+  const hours: any[] = hRes?.ok ? (await hRes.json().catch(() => null))?.properties?.periods ?? [] : [];
+
+  // NWS describes conditions in prose. Mapped to the WMO codes the app reads,
+  // longest phrases first so "heavy rain" does not match as plain "rain".
+  const PHRASES: [string, number][] = [
+    ["heavy rain", 65], ["heavy snow", 75], ["freezing rain", 66], ["freezing drizzle", 56],
+    ["thunderstorm", 95], ["hail", 96], ["blizzard", 75],
+    ["rain shower", 80], ["snow shower", 85], ["drizzle", 51], ["sleet", 66],
+    ["rain", 61], ["snow", 71], ["fog", 45], ["haze", 45], ["smoke", 45],
+    ["mostly cloudy", 3], ["partly cloudy", 2], ["partly sunny", 2], ["mostly sunny", 1],
+    ["mostly clear", 1], ["cloudy", 3], ["overcast", 3], ["clear", 0], ["sunny", 0], ["fair", 1],
+  ];
+  const toWmo = (text?: string) => {
+    const t = (text ?? "").toLowerCase();
+    for (const [phrase, code] of PHRASES) if (t.includes(phrase)) return code;
+    return 2;
+  };
+
+  // Periods alternate day and night. One calendar day is the daytime high and
+  // the following night's low, so they are folded back together here.
+  const byDate = new Map<string, { hi?: number; lo?: number; pop: number; wind?: number; cond?: string }>();
+  for (const p of periods) {
+    const date = String(p.startTime).slice(0, 10);
+    const row = byDate.get(date) ?? { pop: 0 };
+    const temp = typeof p.temperature === "number" ? p.temperature : undefined;
+    if (p.isDaytime) {
+      row.hi = temp;
+      row.cond = p.shortForecast;
+      const w = String(p.windSpeed ?? "").match(/(\d+)\s*mph/);
+      if (w) row.wind = Number(w[1]);
+    } else if (row.lo === undefined) {
+      row.lo = temp;
+      if (row.cond === undefined) row.cond = p.shortForecast;
+    }
+    const pop = p?.probabilityOfPrecipitation?.value;
+    if (typeof pop === "number") row.pop = Math.max(row.pop, pop);
+    byDate.set(date, row);
+  }
+
+  const days = [...byDate.entries()].slice(0, 7).map(([date, r]) => ({
+    date,
+    highF: r.hi,
+    lowF: r.lo,
+    precipitationChance: (r.pop ?? 0) / 100,
+    windSpeedMax: r.wind,
+    condition: String(toWmo(r.cond)),
+  }));
+
+  const now = hours[0];
+  return {
+    source: "nws",
+    timezone: null,
+    current: {
+      tempF: typeof now?.temperature === "number" ? now.temperature : days[0]?.highF,
+      condition: String(toWmo(now?.shortForecast ?? periods[0]?.shortForecast)),
+    },
+    days,
+    today: days[0]
+      ? { precipitationChance: days[0].precipitationChance, windSpeedMax: days[0].windSpeedMax }
+      : null,
+  };
+}
+
 async function fromMetNo(lat: number, lng: number) {
   const res = await fetch(
     `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`,
@@ -221,19 +319,54 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "lat and lng out of range" }, { status: 400 });
   }
 
-  // Three independent providers, tried in order. WeatherKit is preferred when
-  // its credentials are present; Open-Meteo and met.no are free, keyless and
-  // run by different organisations, so one outage cannot take the card down.
-  // Open-Meteo leads. WeatherKit rejects every request with 401 NOT_ENABLED —
-  // two separate keys, both endpoints, every JWT variant, while Apple's own
-  // console shows the service provisioned at 100% with zero calls recorded in
-  // thirty days. Trying it first cost a guaranteed failed round trip on every
-  // forecast a customer loads. Last now, so if Apple ever resolves it, it
-  // resumes on its own with no code change.
+  // Four independent providers plus a last-known-good fallback.
+  //
+  // Order is deliberate. Open-Meteo is global and fastest. NWS is the US
+  // government forecast and covers the entire service area. met.no is a
+  // national meteorological service and global. All three are keyless, run by
+  // different organisations, and cannot plausibly fail together.
+  //
+  // WeatherKit is last, not first. It rejects every request with 401
+  // NOT_ENABLED — two separate keys, both endpoints, every JWT variant, while
+  // Apple's own console shows the service provisioned with zero calls recorded
+  // in thirty days. Trying it first cost a guaranteed failed round trip on
+  // every forecast a customer loads. Left in the chain so that if Apple ever
+  // resolves it, it resumes on its own with no code change.
   const data =
     (await fromOpenMeteo(lat, lng)) ??
+    (await fromNws(lat, lng)) ??
     (await fromMetNo(lat, lng)) ??
     (await fromWeatherKit(lat, lng));
+
+  // ~1km square: close enough that neighbours share a forecast, coarse enough
+  // that the cache is actually used.
+  const grid = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+
+  if (data) {
+    // Remember it, so a total outage later has something honest to show.
+    void supabaseAdmin()
+      .from("weather_cache")
+      .upsert({ grid, payload: data as any, source: (data as any).source, fetched_at: new Date().toISOString() },
+              { onConflict: "grid" })
+      .then(() => {}, () => {});
+  } else {
+    // Every provider failed. An empty card reads as broken; a reading from
+    // earlier, labelled with its age, is honest and still useful.
+    const { data: cached } = await supabaseAdmin()
+      .from("weather_cache")
+      .select("payload, source, fetched_at")
+      .eq("grid", grid)
+      .maybeSingle();
+
+    const ageMin = cached ? (Date.now() - new Date(cached.fetched_at).getTime()) / 60000 : Infinity;
+    // Beyond six hours a forecast is stale enough to mislead about the day.
+    if (cached && ageMin < 360) {
+      return NextResponse.json(
+        { ...(cached.payload as any), source: `${cached.source}-cached`, stale: true, fetched_at: cached.fetched_at },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+  }
 
   if (!data) return NextResponse.json({ error: "weather unavailable" }, { status: 503 });
   return NextResponse.json(data, {
