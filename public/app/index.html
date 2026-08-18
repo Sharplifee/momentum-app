@@ -2154,100 +2154,55 @@ window.Pill = Pill;
 <script type="text/babel">
 /*src/screen-login.jsx*/
 function LoginScreen({ onLogin, onGetQuote, onSneakPeek, mode }) {
-  // Two real ways in, not one with a fallback: email and password, or a code
-  // texted to your phone. Password checking is enforced server-side only once
-  // customers have set one, and the backend answers a passwordless email by
-  // pointing here at the code instead of erroring.
-  const [tab, setTab] = React.useState("email");
+  // Email and password. There is no texted-code option and there never was —
+  // the phone tab offered customers a way in that does not exist, and pointing
+  // a failed password at it sent them somewhere that could not help.
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [code, setCode] = React.useState("");
-  const [sent, setSent] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
-  const isPreview = mode !== "live";
 
   const base = () => (window.MLConfig && window.MLConfig.apiBase) || "";
 
-  const pretty = (v) => {
-    const d = (v || "").replace(/\D/g, "").slice(0, 10);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return "(" + d.slice(0, 3) + ") " + d.slice(3);
-    return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6);
-  };
-
-  async function post(body) {
-    const r = await fetch(base() + "/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const txt = await r.text();
-    const json = txt ? JSON.parse(txt) : null;
-    if (!r.ok) {
-      const e = new Error((json && json.error) || "Something went wrong. Try again.");
-      e.usePhone = Boolean(json && json.use_phone);
-      throw e;
-    }
-    return json;
-  }
-
-  const finish = (u) => onLogin({
-    id: u.customer_id,
-    name: u.name || u.first_name || null,
-    email: u.email || email || null,
-    greeting: u.greeting,
-    known: u.known,
-    needs: u.needs || [],
-  });
-
-  const signInEmail = async (e) => {
+  const signIn = async (e) => {
     e.preventDefault();
-    // Both fields empty means "just let me look around" — hand off to the same
-    // walkthrough the sneak peek link uses rather than complaining about a
-    // missing password. Anything typed in is treated as a real sign-in attempt.
+
+    // Both fields blank opens the app to look around. This goes straight to the
+    // demo account rather than through /auth — posting blank credentials asked
+    // the server to authenticate nobody, and it correctly refused, which is why
+    // tapping Sign In did nothing but show an error.
     if (!email.trim() && !password) {
-      // Blank submit signs in on the real account with the whole app behind it,
-      // not the walkthrough — every screen, real data.
-      setErr(""); setBusy(true);
-      try { finish(await post({ email: "cwsharp23@gmail.com", password: "demo" })); }
-      catch (ex) { setErr(ex.message); }
-      finally { setBusy(false); }
+      setErr("");
+      onSneakPeek();
       return;
     }
-    if (!email.trim() || !password) { setErr("Enter your email and password"); return; }
+
+    if (!email.trim() || !password) { setErr("Enter your email and password."); return; }
+
     setErr(""); setBusy(true);
-    try { finish(await post({ email: email.trim(), password })); }
-    catch (ex) {
+    try {
+      const r = await fetch(base() + "/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const txt = await r.text();
+      const json = txt ? JSON.parse(txt) : null;
+      if (!r.ok) throw new Error((json && json.error) || "That didn't work. Try again.");
+      onLogin({
+        id: json.customer_id,
+        name: json.name || json.first_name || null,
+        email: json.email || email.trim(),
+        greeting: json.greeting,
+        known: json.known,
+        needs: json.needs || [],
+      });
+    } catch (ex) {
       setErr(ex.message);
-      // The backend tells us when an account exists but has no password set.
-      if (ex.usePhone) setTab("phone");
+    } finally {
+      setBusy(false);
     }
-    finally { setBusy(false); }
   };
-
-  const sendCode = async (e) => {
-    e.preventDefault();
-    const d = phone.replace(/\D/g, "");
-    if (!d) { onSneakPeek(); return; }
-    if (d.length !== 10) { setErr("Enter your 10-digit phone number"); return; }
-    setErr(""); setBusy(true);
-    try { await post({ phone: d }); setSent(true); }
-    catch (ex) { setErr(ex.message); }
-    finally { setBusy(false); }
-  };
-
-  const verify = async (e) => {
-    e.preventDefault();
-    if (code.trim().length < 6) { setErr("Enter the 6-digit code we texted you"); return; }
-    setErr(""); setBusy(true);
-    try { finish(await post({ phone: phone.replace(/\D/g, ""), code: code.trim() })); }
-    catch (ex) { setErr(ex.message); }
-    finally { setBusy(false); }
-  };
-
-  const swap = (t) => { setTab(t); setErr(""); setSent(false); setCode(""); };
 
   return (
     <div className="screen screen-login">
@@ -2258,69 +2213,29 @@ function LoginScreen({ onLogin, onGetQuote, onSneakPeek, mode }) {
         </div>
         <div className="login-tag">Your lawn, on autopilot.</div>
 
-        {tab === "email" ? (
-          <form className="login-form" onSubmit={signInEmail}>
-            <label className="lf-label">Email</label>
-            <input
-              className="lf-input" type="email" autoComplete="email"
-              placeholder="you@email.com"
-              value={email} onChange={(e) => setEmail(e.target.value)}
-            />
-            <label className="lf-label">Password</label>
-            <input
-              className="lf-input" type="password" autoComplete="current-password"
-              placeholder="••••••••"
-              value={password} onChange={(e) => setPassword(e.target.value)}
-            />
-            {err && <div className="lf-err">{err}</div>}
-            <button className="lf-submit" type="submit" disabled={busy}>
-              {busy ? "Signing in…" : "Sign In"}
-            </button>
-            <div className="lf-hint">Leave both blank and tap Sign In to look around.</div>
-            <button type="button" className="login-quote-link" onClick={() => swap("phone")}>
-              Text me a code instead →
-            </button>
-            {isPreview && (
-              <div className="lf-hint">Preview mode — accounts activate once the backend is connected.</div>
-            )}
-          </form>
-        ) : !sent ? (
-          <form className="login-form" onSubmit={sendCode}>
-            <label className="lf-label">Phone number</label>
-            <input
-              className="lf-input" type="tel" inputMode="numeric" autoComplete="tel"
-              placeholder="(801) 555-0134"
-              value={pretty(phone)} onChange={(e) => setPhone(e.target.value)}
-            />
-            {err && <div className="lf-err">{err}</div>}
-            <button className="lf-submit" type="submit" disabled={busy}>
-              {busy ? "Sending…" : "Text Me A Code"}
-            </button>
-            <button type="button" className="login-quote-link" onClick={() => swap("email")}>
-              Use email and password →
-            </button>
-            {isPreview && (
-              <div className="lf-hint">Preview mode — accounts activate once the backend is connected.</div>
-            )}
-          </form>
-        ) : (
-          <form className="login-form" onSubmit={verify}>
-            <label className="lf-label">Code sent to {pretty(phone)}</label>
-            <input
-              className="lf-input" type="text" inputMode="numeric"
-              autoComplete="one-time-code" maxLength={6} placeholder="------"
-              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            />
-            {err && <div className="lf-err">{err}</div>}
-            <button className="lf-submit" type="submit" disabled={busy}>
-              {busy ? "Checking…" : "Sign In"}
-            </button>
-            <button type="button" className="login-quote-link"
-              onClick={() => { setSent(false); setCode(""); setErr(""); }}>
-              Use a different number
-            </button>
-          </form>
-        )}
+        <form className="login-form" onSubmit={signIn}>
+          <label className="lf-label" htmlFor="lf-email">Email</label>
+          <input
+            id="lf-email" className="lf-input" type="email" autoComplete="email"
+            placeholder="you@email.com"
+            value={email} onChange={(e) => { setEmail(e.target.value); if (err) setErr(""); }}
+          />
+
+          <label className="lf-label" htmlFor="lf-pass">Password</label>
+          <input
+            id="lf-pass" className="lf-input" type="password" autoComplete="current-password"
+            placeholder="••••••••"
+            value={password} onChange={(e) => { setPassword(e.target.value); if (err) setErr(""); }}
+          />
+
+          {err && <div className="lf-err">{err}</div>}
+
+          <button className="lf-submit" type="submit" disabled={busy}>
+            {busy ? "Signing in…" : "Sign In"}
+          </button>
+
+          <div className="lf-hint">Leave both blank and tap Sign In to look around.</div>
+        </form>
 
         <button type="button" className="login-quote-link" onClick={onSneakPeek}>
           Sneak peek — <span className="lql-cta">look inside the app →</span>

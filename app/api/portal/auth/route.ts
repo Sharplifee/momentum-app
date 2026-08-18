@@ -59,15 +59,14 @@ export async function POST(req: NextRequest) {
 
       if (r?.reason === "locked") {
         return withCors({
-          error: "Too many tries. Wait fifteen minutes, or sign in with your phone number instead.",
+          error: "Too many tries. Wait fifteen minutes and try again.",
         }, origin, 429);
       }
       if (r?.reason === "no_password") {
-        // Knows the email, has never set a password. Sending them to the code
-        // is kinder than an error they cannot act on.
+        // Knows the email, has never set a password. There is no texted-code
+        // route to send them to, so say what they can actually do.
         return withCors({
-          error: "You haven't set a password yet — sign in with your phone number and we'll text you a code.",
-          use_phone: true,
+          error: "You haven't set a password yet — message us and we'll get you set up.",
         }, origin, 409);
       }
       if (!r?.ok) {
@@ -104,10 +103,11 @@ export async function POST(req: NextRequest) {
     // Same answer either way. Telling a stranger which addresses are on file
     // turns this into a way to enumerate the customer list.
     return withCors({
+      // There is no texted-code sign-in, so pointing anyone at one sends them
+      // to a door that does not exist.
       error: c
-        ? "Passwords aren't set up yet — sign in with your phone number and we'll text you a code."
+        ? "Your account isn't set up for a password yet — message us and we'll get you in."
         : "We don't recognize that email and password.",
-      use_phone: Boolean(c),
     }, origin, c ? 409 : 401);
   }
 
