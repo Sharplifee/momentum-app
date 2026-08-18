@@ -61,6 +61,19 @@ export async function POST(req: NextRequest) {
   );
   if (error) return withCors({ error: error.message }, origin, 400);
 
+  // Retire this customer's older device tokens on the same app.
+  //
+  // iOS issues a fresh token after a reinstall or a restore, and the old one
+  // stays valid for a while — so a customer accumulates tokens and receives the
+  // same notice two or three times. Only the token that just checked in is
+  // known to be a phone the customer still has in their hand.
+  await db
+    .from("push_tokens")
+    .update({ active: false })
+    .eq("customer_id", customer_id)
+    .eq("bundle_id", bundle_id ?? CUSTOMER_BUNDLE)
+    .neq("token", token);
+
   return withCors({ ok: true }, origin);
 }
 
