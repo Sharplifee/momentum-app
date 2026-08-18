@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { corsHeaders, withCors } from "@/lib/portalCors";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendSms } from "@/lib/sms";
@@ -7,6 +8,15 @@ import { logAutomation } from "@/lib/automation";
 
 export const runtime = "nodejs";
 
+// The app is a static page on another origin; without this the browser blocks
+// the request before it is ever sent.
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
+  });
+}
+
 function hashCode(code: string, phone: string): string {
   return crypto.createHash("sha256").update(`${code}:${phone}:${process.env.CRON_SECRET}`).digest("hex");
 }
@@ -14,7 +24,7 @@ function hashCode(code: string, phone: string): string {
 export async function POST(req: NextRequest) {
   const { phone: rawPhone } = await req.json().catch(() => ({}));
   const phone = toE164(String(rawPhone ?? ""));
-  if (!phone) return NextResponse.json({ error: "That doesn't look like a US phone number." }, { status: 400 });
+  if (!phone) return withCors({ error: "That doesn't look like a US phone number." }, req.headers.get("origin"), 400);
 
   const db = supabaseAdmin();
 
@@ -22,10 +32,10 @@ export async function POST(req: NextRequest) {
   const { data: customer } = await db.from("customers").select("id").eq("phone", phone).maybeSingle();
   if (!customer) {
     await logAutomation({ trigger: "portal.otp.unknown_phone", status: "skipped", detail: { phone } });
-    return NextResponse.json({
+    return withCors({
       error: "no_account",
       message: "We couldn't find an account for that number — request a quote at momentumlandscapingut.com or text us and we'll get you set up.",
-    }, { status: 404 });
+    }, req.headers.get("origin"), 404);
   }
 
   // rate limit: max 3 sends per phone per hour
@@ -33,7 +43,7 @@ export async function POST(req: NextRequest) {
   const { count } = await db.from("otp_codes").select("id", { count: "exact", head: true }).eq("phone", phone).gte("created_at", hourAgo);
   if ((count ?? 0) >= 3) {
     await logAutomation({ trigger: "portal.otp.rate_limited", status: "skipped", detail: { phone } });
-    return NextResponse.json({ error: "Too many tries just now. Give it a minute.", message: "Too many codes requested — try again in an hour." }, { status: 429 });
+    return withCors({ error: "Too many tries just now. Give it a minute.", message: "Too many codes requested — try again in an hour." }, req.headers.get("origin"), 429);
   }
 
   const code = String(crypto.randomInt(100000, 1000000));
@@ -62,5 +72,5 @@ export async function POST(req: NextRequest) {
   });
 
   await logAutomation({ trigger: "portal.otp.sent", detail: { phone, dry_run: (result as any).dry_run ?? false, proved: proveOnce } });
-  return NextResponse.json({ ok: true });
+  return withCors({ ok: true }, req.headers.get("origin"));
 }

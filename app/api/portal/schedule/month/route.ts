@@ -13,7 +13,12 @@ export async function GET(req: NextRequest) {
   const y = Number(req.nextUrl.searchParams.get("year")) || new Date().getFullYear();
   const m = Number(req.nextUrl.searchParams.get("month")) || new Date().getMonth() + 1;
   const from = `${y}-${String(m).padStart(2, "0")}-01`;
-  const to = new Date(y, m, 0).toISOString().slice(0, 10);
+  // new Date(y, m, 0) is midnight LOCAL, and the server runs in UTC, so
+  // toISOString() rolled the last day of the month back by one. A visit on the
+  // 31st simply did not appear in that month's calendar. Built as a string
+  // instead so no timezone is involved at all.
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
   const { data } = await supabaseAdmin()
     .from("jobs").select("id, scheduled_date, status")
     .eq("customer_id", c.id)
