@@ -3,6 +3,12 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { withCors, corsHeaders } from "@/lib/portalCors";
 import { NextResponse } from "next/server";
 
+/** Today where the work happens. UTC rolls over at 6pm Mountain, which moved a
+ *  visit out of "upcoming" and into "past" while the crew was still on site. */
+const localToday = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" });
+
+
 export const runtime = "nodejs";
 
 export async function OPTIONS(req: NextRequest) {
@@ -27,15 +33,17 @@ export async function GET(req: NextRequest) {
 
   const [{ data: upcoming }, { data: past }] = await Promise.all([
     db.from("jobs")
-      .select("id, scheduled_date, status, kind")
+      // `kind` is not a column on jobs — selecting it errored the whole
+      // query, so upcoming came back empty and next_visit null even with visits booked.
+      .select("id, scheduled_date, status, service_id")
       .eq("customer_id", customerId)
-      .gte("scheduled_date", new Date().toISOString().slice(0, 10))
+      .gte("scheduled_date", localToday())
       .order("scheduled_date")
       .limit(6),
     db.from("jobs")
       .select("id, scheduled_date, status")
       .eq("customer_id", customerId)
-      .lt("scheduled_date", new Date().toISOString().slice(0, 10))
+      .lt("scheduled_date", localToday())
       .order("scheduled_date", { ascending: false })
       .limit(8),
   ]);

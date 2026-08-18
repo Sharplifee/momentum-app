@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+
+/** Today where the work happens. UTC rolls over at 6pm Mountain, which moved a
+ *  visit out of "upcoming" and into "past" while the crew was still on site. */
+const localToday = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" });
+
 export const runtime = "nodejs";
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
@@ -31,7 +37,7 @@ export async function POST(req: NextRequest) {
       await db.from("exceptions").insert({
         type: "service_request", severity: "high",
         detail: `${c.full_name ?? "A customer"} asked about ${service}${note ? ` — ${note}` : ""}`,
-        ref_table: "customers", ref_id: c.id, occurred_on: new Date().toISOString().slice(0, 10),
+        ref_table: "customers", ref_id: c.id, occurred_on: localToday(),
       });
     }
   });
