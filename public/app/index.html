@@ -742,9 +742,8 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 /* Home fits the frame. Nothing to scroll, no clipped card at the bottom, and
    the breathing room that only appeared after a swipe is now simply there. */
 .screen-home {
-  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
-  min-height: 0 !important;
-  overflow: hidden;
+  min-height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
+  overflow-y: auto;
   padding-top: clamp(6px, 1.8vw, 20px);
   gap: clamp(6px, 1.4dvh, 14px);
 }
@@ -850,10 +849,14 @@ img, svg, video, canvas { max-width: 100%; height: auto }
    padding box) with a height ceiling; the cards keep their natural height; and
    whatever is left over is distributed as even space between the three. */
 
+/* Height is a floor, not a ceiling. Fixed height + overflow:hidden meant that on
+   a real Safari viewport (~640pt visible, not the 874pt of the raw screen) the
+   column was 92pt shorter than its own content: the second card was cut in half
+   and the logo was painted over the first one. The frame gives what it has and
+   scrolls for the rest. */
 .screen-home {
-  height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
-  min-height: 0 !important;
-  overflow: hidden;
+  min-height: calc(var(--ml-vh, 100dvh) - var(--tabbar-h));
+  overflow-y: auto;
   padding-top: 0;
 }
 
@@ -861,14 +864,12 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;   /* the three blocks share the leftover space */
-  height: 100%;
   min-height: 0;
   gap: 0 !important;
   /* Widening this shrinks the logo and both cards together, by the same
      amount, so they stay aligned while the whole column comes down a notch. */
   padding: clamp(6px, 1.6vw, 14px) clamp(20px, 5.6vw, 30px) clamp(6px, 1.6vw, 14px) !important;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 /* No padding of its own — it sits in the grid's box, so the logo's width is
@@ -1016,7 +1017,9 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
    because one of the earlier rules caps it at min(300px, 78vw), which is what
    was making it wider or narrower than the cards depending on screen size. */
 .screen-home .home-hero {
-  flex: 0 1 auto !important;
+  /* Never shrink. A shrunken box does not shrink the image inside it; it just
+     lets the image spill out over the card below. */
+  flex: 0 0 auto !important;
   width: 100% !important;
   min-height: 0 !important;
   /* The logo sat flush against the first card. */
