@@ -884,7 +884,11 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   width: 100% !important;
   max-width: 100% !important;      /* the 240px cap is what held it narrow */
   height: auto !important;
-  max-height: clamp(96px, 19dvh, 190px) !important;
+  /* Width is what should govern — the logo is meant to read at the same width
+     as the cards. The ceiling only exists so a short phone does not lose a
+     card to it, so it sits just above the width-driven height (218px at 393pt)
+     rather than cutting in below it. */
+  max-height: clamp(150px, 27dvh, 260px) !important;
   object-fit: contain !important;
   display: block;
   margin: 0 auto;
