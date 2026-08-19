@@ -724,20 +724,10 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   padding: 0 40px;
   box-sizing: border-box;
 }
-.screen-home .home-hero .ml-logo {
-  width: 100%;
-  transform: none !important;   /* the scale() prop fought the width cap */
-  padding: 0;
-}
-.screen-home .home-hero .ml-logo-img,
-.screen-home .home-hero .ml-logo img {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  max-height: clamp(112px, 23dvh, 210px) !important;
-  object-fit: contain !important;
-  margin: 0 auto;
-}
+/* superseded by the single wrapper rule below */
+
+/* superseded by the single width-driven rule below */
+
 
 /* Home fits the frame. Nothing to scroll, no clipped card at the bottom, and
    the breathing room that only appeared after a swipe is now simply there. */
@@ -889,30 +879,10 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   padding: 0 !important;
   display: block;
 }
-.screen-home .home-hero .ml-logo { width: 100%; transform: none !important; padding: 0; display: block; }
-.screen-home .home-hero .ml-logo-img,
-.screen-home .home-hero .ml-logo img {
-  width: 100% !important;
-  max-width: 100% !important;      /* the 240px cap is what held it narrow */
-  height: auto !important;
-  /* Width is what should govern — the logo is meant to read at the same width
-     as the cards. The ceiling only exists so a short phone does not lose a
-     card to it, so it sits just above the width-driven height (218px at 393pt)
-     rather than cutting in below it. */
-  /* No dvh. In a WebView the first paint measures a viewport that has not
-     settled, so any dvh value renders larger and then corrects on the next
-     render — which is exactly the two sizes seen on Home. Width already
-     decides this element; the ceiling is expressed as a ratio of that width,
-     so it needs no viewport measurement and cannot change between renders. */
-  max-height: none !important;
-  aspect-ratio: 497 / 300;
-  object-fit: contain !important;
-  display: block;
-  /* The asset has 3px of empty pixels on its right edge and none on its left
-     (ink bbox 0..494 of 497), so filling the box lands it a hair left of
-     centre. Offset by half that imbalance, in percent so it holds at any size. */
-  margin: 0 auto 0 calc(0.3%);
-}
+/* superseded by the single wrapper rule below */
+
+/* superseded by the single width-driven rule below */
+
 
 /* The cards keep their natural height so neither is ever clipped. */
 .screen-home .home-content-grid {
@@ -1044,7 +1014,12 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
 }
 .screen-home .home-hero .ml-logo {
   width: 100% !important;
-  height: 100% !important;
+  /* NOT height:100%. Tying the wrapper to the hero box made the artwork's
+     rendered width a function of that box's height, and the hero is a flex
+     child whose height varies with whatever space the column has left — which
+     is precisely why the logo measured 1163px on first paint and 1055px after
+     a tab change while the cards stayed at 1071px. Height now follows width. */
+  height: auto !important;
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -1053,19 +1028,17 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
 }
 .screen-home .home-hero .ml-logo-img,
 .screen-home .home-hero .ml-logo img {
-  /* Fill the hero box and contain: when the box is at its natural
-     aspect-ratio height the artwork fills it edge to edge (logo width equals
-     card width); when the box has been shrunk the artwork scales down inside
-     it, centred, and never overflows. */
+  /* Width decides, height follows. No height, no max-height, no object-fit
+     sizing — every one of those makes the rendered width depend on something
+     other than the container, and the container is the only dimension that is
+     identical on every render. */
   width: 100% !important;
-  height: 100% !important;
+  height: auto !important;
   max-width: none !important;
   max-height: none !important;
   min-width: 0 !important;
-  object-fit: contain !important;
-  /* The asset has 3px of empty pixels on its right edge and none on its left
-     (ink bbox 0..494 of 497), so dead-centre lands the ink a hair left. */
-  object-position: 50.3% 50%;
+  aspect-ratio: 497 / 300;
+  object-fit: fill !important;
   display: block !important;
   margin: 0 !important;
   transform: none !important;
