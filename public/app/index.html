@@ -2847,7 +2847,10 @@ function MessagesScreen({ tweaks, customerName }) {
 
   const toBubble = React.useCallback((m) => ({
     from: m.direction === "inbound" || m.sender === "customer" ? "me" : "C",
-    name: m.sender === "customer" ? undefined : "Crew",
+    // Nora and a human crew member are not the same correspondent, and the row
+    // already says which is which. Labelling everything "Crew" made an AI reply
+    // look like it came from a person.
+    name: m.sender === "customer" ? undefined : m.sender === "nora" ? "Nora" : "Crew",
     text: m.body,
     time: new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
   }), []);
@@ -3500,7 +3503,7 @@ function QuoteScreen({ onBack }) {
           <div className="qs-check">{Icon.check}</div>
           <div className="qs-title">You're all set!</div>
           <div className="qs-sub">
-            Got it! Wayne, our AI assistant, will text you within a minute to lock
+            Got it! Nora, our AI assistant, will text you within a minute to lock
             in your quote visit. 🌱
           </div>
           <button className="qs-secondary" onClick={onBack}>Back to app</button>

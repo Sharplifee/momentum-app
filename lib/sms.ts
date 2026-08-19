@@ -5,7 +5,7 @@ type SendSmsInput = {
   to: string; // E.164
   message: string;
   thread_id?: string | null;
-  sender?: "wayne" | "staff" | "system";
+  sender?: "nora" | "staff" | "system";
   template?: string | null;
   vars?: Record<string, string> | null;
   bypassQuietHours?: boolean; // STOP/HELP compliance confirmations only
@@ -132,7 +132,7 @@ export async function sendSms(input: SendSmsInput) {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        type: "wayne_reply",
+        type: "nora_reply",
         to: { id: to, number: to },
         sms: { message },
       }),
@@ -149,7 +149,7 @@ export async function sendSms(input: SendSmsInput) {
       thread_id: input.thread_id ?? null,
       channel: "sms",
       direction: "outbound",
-      sender: input.sender ?? "wayne",
+      sender: input.sender ?? "nora",
       body: message,
       meta: { to, intended_to: sandboxed ? input.to : undefined, sandboxed, dry_run: dryRun, provider_response: providerResponse },
     })

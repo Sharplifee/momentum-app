@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     return withCors({ ok: true, message: "That visit is within 24 hours, so our team will confirm this change — you'll hear back shortly." }, origin);
   }
 
-  // >24h: capacity-checked auto-move (same rules as Wayne's reschedule_job tool)
+  // >24h: capacity-checked auto-move (same rules as Nora's reschedule_job tool)
   const { data: crew } = await admin.from("crews").select("id, max_daily_jobs").eq("id", job.crew_id).single();
   const { count } = await admin.from("jobs").select("id", { count: "exact", head: true }).eq("crew_id", job.crew_id).eq("scheduled_date", requested_date).neq("status", "cancelled");
   if ((count ?? 0) >= (crew?.max_daily_jobs ?? 12)) {
@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
   // confirmation into the unified thread + (sandboxed/dry) SMS
   const { data: thread } = await admin.from("threads").select("id").eq("phone", customer.phone).limit(1).maybeSingle();
   const confirmation = `You're moved to ${new Date(requested_date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}. See you then! 🌱`;
-  if (thread) await admin.from("messages").insert({ thread_id: thread.id, channel: "portal", direction: "outbound", sender: "wayne", body: confirmation });
-  await sendSms({ to: customer.phone, message: confirmation, thread_id: thread?.id ?? null, sender: "wayne" });
+  if (thread) await admin.from("messages").insert({ thread_id: thread.id, channel: "portal", direction: "outbound", sender: "nora", body: confirmation });
+  await sendSms({ to: customer.phone, message: confirmation, thread_id: thread?.id ?? null, sender: "nora" });
 
   await logAutomation({ trigger: "portal.reschedule.auto", ref_id: job_id, detail: { to: requested_date } });
   return withCors({ ok: true, message: confirmation }, origin);

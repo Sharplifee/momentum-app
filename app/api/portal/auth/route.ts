@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       },
       // Shape matches the CRM's lib/sms.ts, which is the call known to deliver.
       body: JSON.stringify({
-        type: "wayne_reply",
+        type: "nora_reply",
         to: { id: e164, number: e164 },
         sms: { message: `${otp} is your Momentum code. It expires in 10 minutes.` },
       }),

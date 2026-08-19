@@ -4,17 +4,17 @@ import { logAutomation } from "@/lib/automation";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 /**
- * Wayne lives in the CRM and stays there.
+ * Nora lives in the CRM and stays there.
  *
- * He needs availability, the service area, Meta conversions and the SMS
- * pipeline — all CRM concerns. Copying him here would mean two Waynes with two
+ * She needs availability, the service area, Meta conversions and the SMS
+ * pipeline — all CRM concerns. Copying her here would mean two Noras with two
  * sets of rules drifting apart, and the rules are the point: never quote a
- * price, never invent a date, always say he is an AI when asked.
+ * price, never invent a date, always say she is an AI when asked.
  *
  * So the customer app asks the CRM for a reply instead of generating one.
  */
-async function runWayne(...args: any[]): Promise<string> {
-  const res = await fetch("https://crm.momentumlandscapingut.com/api/wayne/reply", {
+async function runNora(...args: any[]): Promise<string> {
+  const res = await fetch("https://crm.momentumlandscapingut.com/api/nora/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -22,7 +22,7 @@ async function runWayne(...args: any[]): Promise<string> {
     },
     body: JSON.stringify({ args }),
   });
-  if (!res.ok) throw new Error("wayne unavailable");
+  if (!res.ok) throw new Error("nora unavailable");
   return (await res.json()).reply as string;
 }
 
@@ -141,18 +141,18 @@ export async function POST(req: NextRequest) {
     .update({ last_message_at: new Date().toISOString(), customer_id: customer.id })
     .eq("id", thread.id);
 
-  // Once a human has taken the thread over, Wayne stays out of it.
+  // Once a human has taken the thread over, Nora stays out of it.
   if (!thread.escalated) {
-    const reply = await runWayne(
+    const reply = await runNora(
       { thread_id: thread.id, phone: customer.phone, lead_id: thread.lead_id, customer_id: customer.id, channel: "portal" },
       String(body)
     ).catch(async (err) => {
-      console.error("wayne portal reply failed", err);
+      console.error("nora portal reply failed", err);
       return null;
     });
     if (reply) {
       await admin.from("messages").insert({
-        thread_id: thread.id, channel: "portal", direction: "outbound", sender: "wayne", body: reply,
+        thread_id: thread.id, channel: "portal", direction: "outbound", sender: "nora", body: reply,
       });
     }
   }

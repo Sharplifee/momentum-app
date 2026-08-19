@@ -23,6 +23,6 @@ export async function POST(req: NextRequest) {
   if (error) return withCors({ error: "We couldn't send that. Try again." }, origin, 400);
   return withCors({
     ok: true,
-    message: "Got it. Wayne will text you shortly to arrange your quote visit.",
+    message: "Got it. Nora will text you shortly to arrange your quote visit.",
   }, origin);
 }

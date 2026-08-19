@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         headers: { Authorization: `Bearer ${process.env.PINGRAM_API_KEY}`,
                    "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "wayne_reply",
+          type: "nora_reply",
           to: { id: c.phone, number: c.phone },
           sms: { message: `Reset your Momentum password: https://momentumlandscapingut.com/app#reset=${tok} — expires in an hour. Didn't ask for this? Ignore it.` },
         }),
