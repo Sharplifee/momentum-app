@@ -865,8 +865,11 @@ img, svg, video, canvas { max-width: 100%; height: auto }
      to card, card to card, card to tab bar. The two card wrappers are
      flattened (display: contents, in the lock block) so the column is exactly
      three blocks and the card-to-card gap is metered the same as the rest. */
-  gap: 10px !important;
-  padding: 10px clamp(20px, 5.6vw, 30px) !important;
+  /* 10px was too tight to read as a gap once the logo's box hugs the artwork
+     exactly — the logo appeared to sit on the card. This is the floor; when
+     there is spare height space-evenly still adds to all four gaps equally. */
+  gap: clamp(14px, 3.6vw, 24px) !important;
+  padding: clamp(10px, 2.4vw, 16px) clamp(20px, 5.6vw, 30px) !important;
   box-sizing: border-box;
 }
 
