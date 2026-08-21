@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "MomentumLAND",
+    "slug": "momentum-customer",
+    "scheme": "momentum",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0F1720",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F1720"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.momentumlandscapingut.customer",
+      "buildNumber": "2",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Attach a photo when you message us about your yard.",
+        "NSPhotoLibraryUsageDescription": "Attach a photo when you message us about your yard.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.momentumlandscapingut.customer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F1720"
+      }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#7FB8BE"
+        }
+      ]
+    ],
+    "extra": {
+      "appUrl": "https://momentumlandscapingut.com/app"
+    }
+  }
+}
