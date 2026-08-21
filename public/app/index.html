@@ -868,7 +868,11 @@ img, svg, video, canvas { max-width: 100%; height: auto }
   /* 10px was too tight to read as a gap once the logo's box hugs the artwork
      exactly — the logo appeared to sit on the card. This is the floor; when
      there is spare height space-evenly still adds to all four gaps equally. */
-  gap: clamp(14px, 3.6vw, 24px) !important;
+  /* Raised: at 14px the logo's artwork sits close enough to the first card to
+     read as touching it. Paid for out of the cards' vertical padding below, so
+     the logo does not have to shrink — shrinking it would narrow it too, and
+     its width has to keep matching the cards. */
+  gap: clamp(22px, 5.4vw, 34px) !important;
   padding: clamp(10px, 2.4vw, 16px) clamp(20px, 5.6vw, 30px) !important;
   box-sizing: border-box;
 }
@@ -902,7 +906,8 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .screen-home .ns-card,
 .screen-home .combo-card {
   flex: 0 0 auto;
-  padding: clamp(11px, 3.3vw, 20px) clamp(14px, 4.5vw, 26px);
+  /* Vertical padding trimmed to fund the larger gap above. */
+  padding: clamp(8px, 2.4vw, 15px) clamp(14px, 4.5vw, 26px);
 }
 
 .screen-home .ns-eyebrow { font-size: clamp(9.5px, 2.5vw, 11.5px); letter-spacing: 0.14em; }
