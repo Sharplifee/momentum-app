@@ -718,11 +718,15 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .screen-home .home-hero {
   flex: 0 1 auto;
   min-height: 0 !important;
-  width: 100%;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 0 40px;
+  width: 100% !important;
+  /* Left over from an older layout: 40px of its own padding and a 560px cap
+     made the logo's box narrower than the cards' box. The grid already pads
+     this column, so the hero adds nothing of its own. */
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   box-sizing: border-box;
+  overflow: visible;
 }
 /* superseded by the single wrapper rule below */
 
@@ -1010,10 +1014,17 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
      height: 100% + object-fit: contain — it can never spill over a card. */
   /* Shrink weight 1000: the logo yields virtually all deficit before the
      cards (weight 1, below) give a single point. */
-  flex: 0 1000 auto !important;
-  aspect-ratio: 497 / 300;
+  /* Not shrinkable. With shrink weight 1000 the box was compressed below the
+     height its own aspect-ratio asks for, while the image inside kept its
+     natural height and drew 76px past the bottom of the box — straight over
+     the first card. The column has room for logo + both cards, so nothing
+     needs to be squeezed; the logo's height simply follows its width. */
+  flex: 0 0 auto !important;
+  aspect-ratio: auto !important;
   width: 100% !important;
+  height: auto !important;
   min-height: 0 !important;
+  overflow: visible !important;
   /* No margin: all four gaps come from space-evenly, so they stay equal. */
   margin: 0 !important;
   padding: 0 !important;
@@ -1045,8 +1056,12 @@ input[type="search"], input[type="number"], input:not([type]), select, textarea,
   max-width: none !important;
   max-height: none !important;
   min-width: 0 !important;
-  aspect-ratio: 497 / 300;
-  object-fit: fill !important;
+  /* No aspect-ratio and no object-fit. Together they let the box and the
+     artwork disagree about height, and the artwork drew 76px past its box,
+     over the card beneath it. An img already knows its own proportions:
+     width:100% with height:auto is exact and cannot overflow. */
+  aspect-ratio: auto !important;
+  object-fit: initial !important;
   display: block !important;
   margin: 0 !important;
   transform: none !important;
