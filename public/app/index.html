@@ -197,15 +197,22 @@ a:hover { color: var(--teal); }
 .home-hero {
   position: relative; z-index: 1;
   width: 100%;
-  flex: 1 0 auto;
-  min-height: 150px;
+  /* was flex:1 0 auto with min-height:150px — it grew to fill, which is what
+     put a band of dead space between the logo and the first card. */
+  flex: 0 0 auto;
+  min-height: 0;
   display: flex; justify-content: center; align-items: center;
 }
 .home-hero .ml-logo { display: flex; justify-content: center; align-items: center; width: 100%; }
 .home-hero .ml-logo img, .home-hero .ml-logo-img {
-  width: 100%; max-width: 100%; height: auto !important; object-fit: contain !important;
-  display: block; margin: 0 auto;
-  filter: drop-shadow(0 4px 18px rgba(28,46,68,0.18));
+  /* Width decides, height follows. The drop-shadow that used to be here paints
+     outside the element's box, which is why the logo read wider than the cards
+     even when the boxes measured identical. */
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .home-content-grid { display: flex; flex-direction: column; gap: 14px; }
@@ -236,8 +243,9 @@ a:hover { color: var(--teal); }
 .account-mini-name { font-weight: 700; font-size: 14.5px; margin-bottom: 6px; color: var(--navy); }
 
 @media (min-width: 880px) {
-  .home-grid { max-width: 560px; margin: 0 auto; padding: 0 40px 56px; }
-  .home-hero { min-height: 210px; }
+  /* Home is a fixed-height column on every size now; a 560px cap and 40px of
+     extra padding here made the logo's box narrower than the cards. */
+  .home-grid-new { max-width: 560px; margin: 0 auto; padding: 0 40px 56px; }
   .home-content-grid-solo { gap: 20px; }
   .home-content-grid-solo .home-col-main { gap: 20px; }
   .ns-card { padding: 26px 28px 22px; }
