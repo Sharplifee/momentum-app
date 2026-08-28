@@ -936,6 +936,13 @@ img, svg, video, canvas { max-width: 100%; height: auto }
 .screen-home .cs-num { font-size: clamp(9.5px, 2.8vw, 12.5px); }
 .screen-home .cs-day { padding: clamp(3px, 1.2vw, 6px) 0 clamp(6px, 2vw, 10px); }
 
+.lf-face {
+  background: var(--navy, #0F1720) !important;
+  color: #fff !important;
+  margin-bottom: 4px;
+}
+.lf-face:disabled { opacity: 0.7; }
+
 /* Any text field under 16px makes iOS zoom the page on focus. Stated here,
    last and with !important, so no more specific rule can undercut it — the
    message composer at 14px is what was zooming the app with no way back. */
@@ -2363,87 +2370,151 @@ window.Pill = Pill;
 <script type="text/babel">
 /*src/screen-login.jsx*/
 function LoginScreen({ onLogin, onGetQuote, onSneakPeek, mode }) {
-  // Email and password. There is no texted-code option and there never was —
-  // the phone tab offered customers a way in that does not exist, and pointing
-  // a failed password at it sent them somewhere that could not help.
+  // Face ID first. Once a customer has enrolled a passkey on this phone, the
+  // app offers it immediately on open — email and password stay available
+  // underneath for a new device, a shared phone, or anyone who declines.
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
+  const [faceState, setFaceState] = React.useState("idle"); // idle | prompting | unavailable
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const base = () => (window.MLConfig && window.MLConfig.apiBase) || "";
+  const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const fromB64u = (s) => Uint8Array.from(
+    atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+
+  // Only offer Face ID where the platform can actually do it. Showing the
+  // button and then failing is worse than not showing it.
+  const faceAvailable = React.useCallback(async () => {
+    if (!window.PublicKeyCredential) return false;
+    try {
+      return await window.PublicKeyCredential
+        .isUserVerifyingPlatformAuthenticatorAvailable();
+    } catch (e) { return false; }
+  }, []);
+
+  const signInWithFace = React.useCallback(async (auto) => {
+    setErr(""); setFaceState("prompting");
+    try {
+      const opts = await fetch(base() + "/passkey/login").then((r) => r.json());
+      const cred = await navigator.credentials.get({
+        publicKey: {
+          challenge: fromB64u(opts.challenge),
+          rpId: opts.rpId,
+          userVerification: "required",
+          timeout: opts.timeout || 60000,
+        },
+      });
+      if (!cred) throw new Error("cancelled");
+      const r = await fetch(base() + "/passkey/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challenge: opts.challenge,
+          credential_id: cred.id,
+          authenticator_data: b64u(cred.response.authenticatorData),
+          client_data_json: b64u(cred.response.clientDataJSON),
+          signature: b64u(cred.response.signature),
+        }),
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || "Face ID didn't work.");
+      onLogin({ id: json.customer_id, name: json.name, email: json.email,
+                greeting: json.greeting, first_name: json.first_name });
+    } catch (ex) {
+      setFaceState("idle");
+      // A cancelled prompt is a choice, not an error worth shouting about.
+      const cancelled = ex && (ex.name === "NotAllowedError" || ex.message === "cancelled");
+      if (!auto && !cancelled) setErr(ex.message || "Face ID didn't work.");
+      if (auto) setShowPassword(true);
+    }
+  }, [onLogin]);
+
+  // Prompt on open when this phone has a passkey. That is what makes Face ID
+  // the gate rather than an option buried under a form.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ok = await faceAvailable();
+      if (cancelled) return;
+      if (!ok) { setFaceState("unavailable"); setShowPassword(true); return; }
+      let enrolled = false;
+      try { enrolled = localStorage.getItem("ml_has_passkey") === "1"; } catch (e) {}
+      if (enrolled) signInWithFace(true);
+      else setShowPassword(true);
+    })();
+    return () => { cancelled = true; };
+  }, [faceAvailable, signInWithFace]);
 
   const signIn = async (e) => {
     e.preventDefault();
-
-    // Both fields blank opens the app to look around. This goes straight to the
-    // demo account rather than through /auth — posting blank credentials asked
-    // the server to authenticate nobody, and it correctly refused, which is why
-    // tapping Sign In did nothing but show an error.
-    if (!email.trim() && !password) {
-      setErr("");
-      onSneakPeek();
-      return;
-    }
-
+    if (!email.trim() && !password) { setErr(""); onSneakPeek(); return; }
     if (!email.trim() || !password) { setErr("Enter your email and password."); return; }
-
     setErr(""); setBusy(true);
     try {
       const r = await fetch(base() + "/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
       const txt = await r.text();
       const json = txt ? JSON.parse(txt) : null;
       if (!r.ok) throw new Error((json && json.error) || "That didn't work. Try again.");
-      onLogin({
-        id: json.customer_id,
-        name: json.name || json.first_name || null,
-        email: json.email || email.trim(),
-        greeting: json.greeting,
-        known: json.known,
-        needs: json.needs || [],
-      });
-    } catch (ex) {
-      setErr(ex.message);
-    } finally {
-      setBusy(false);
-    }
+      onLogin({ id: json.customer_id, name: json.name || json.first_name || null,
+                email: json.email || email.trim(), greeting: json.greeting,
+                known: json.known, needs: json.needs || [] });
+    } catch (ex) { setErr(ex.message); }
+    finally { setBusy(false); }
   };
 
   return (
     <div className="screen screen-login">
       <LandscapeBG intensity={1} />
       <div className="login-body">
-        <div className="login-logo-wrap">
-          <MomentumLogo size={1.05} />
-        </div>
+        <div className="login-logo-wrap"><MomentumLogo size={1.05} /></div>
         <div className="login-tag">Your lawn, on autopilot.</div>
 
         <form className="login-form" onSubmit={signIn}>
-          <label className="lf-label" htmlFor="lf-email">Email</label>
-          <input
-            id="lf-email" className="lf-input" type="email" autoComplete="email"
-            placeholder="you@email.com"
-            value={email} onChange={(e) => { setEmail(e.target.value); if (err) setErr(""); }}
-          />
+          {faceState !== "unavailable" && (
+            <React.Fragment>
+              <button
+                type="button" className="lf-submit lf-face"
+                onClick={() => signInWithFace(false)}
+                disabled={faceState === "prompting"}
+                aria-label="Sign in with Face ID"
+              >
+                {faceState === "prompting" ? "Waiting for Face ID…" : "Sign in with Face ID"}
+              </button>
+              {!showPassword && (
+                <button type="button" className="login-quote-link"
+                        onClick={() => setShowPassword(true)}>
+                  Use email and password instead →
+                </button>
+              )}
+            </React.Fragment>
+          )}
 
-          <label className="lf-label" htmlFor="lf-pass">Password</label>
-          <input
-            id="lf-pass" className="lf-input" type="password" autoComplete="current-password"
-            placeholder="••••••••"
-            value={password} onChange={(e) => { setPassword(e.target.value); if (err) setErr(""); }}
-          />
+          {showPassword && (
+            <React.Fragment>
+              <label className="lf-label" htmlFor="lf-email">Email</label>
+              <input id="lf-email" className="lf-input" type="email" autoComplete="email"
+                placeholder="you@email.com" value={email}
+                onChange={(e) => { setEmail(e.target.value); if (err) setErr(""); }} />
+              <label className="lf-label" htmlFor="lf-pass">Password</label>
+              <input id="lf-pass" className="lf-input" type="password" autoComplete="current-password"
+                placeholder="••••••••" value={password}
+                onChange={(e) => { setPassword(e.target.value); if (err) setErr(""); }} />
+              {err && <div className="lf-err">{err}</div>}
+              <button className="lf-submit" type="submit" disabled={busy}>
+                {busy ? "Signing in…" : "Sign In"}
+              </button>
+              <div className="lf-hint">Leave both blank and tap Sign In to look around.</div>
+            </React.Fragment>
+          )}
 
-          {err && <div className="lf-err">{err}</div>}
-
-          <button className="lf-submit" type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Sign In"}
-          </button>
-
-          <div className="lf-hint">Leave both blank and tap Sign In to look around.</div>
+          {!showPassword && err && <div className="lf-err">{err}</div>}
         </form>
 
         <button type="button" className="login-quote-link" onClick={onSneakPeek}>
@@ -3658,11 +3729,69 @@ function App() {
     } catch (e) {}
   }, [user && user.id]);
 
+  /**
+   * Offer Face ID after a real sign-in.
+   *
+   * Enrolling needs an authenticated customer, so this is the natural moment.
+   * Asked once per device — nagging a customer who said no is how people learn
+   * to dismiss prompts without reading them.
+   */
+  const offerFaceId = React.useCallback(async (customerId) => {
+    if (!customerId || !window.PublicKeyCredential) return;
+    try {
+      if (localStorage.getItem("ml_has_passkey") === "1") return;
+      if (localStorage.getItem("ml_passkey_declined") === "1") return;
+      const ok = await window.PublicKeyCredential
+        .isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!ok) return;
+    } catch (e) { return; }
+
+    const base = (window.MLConfig && window.MLConfig.apiBase) || "";
+    const b64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const fromB64u = (x) => Uint8Array.from(
+      atob(x.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+
+    try {
+      const opts = await fetch(base + "/passkey/register", { method: "POST" }).then((r) => r.json());
+      if (!opts || !opts.challenge) return;
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge: fromB64u(opts.challenge),
+          rp: opts.rp,
+          user: { ...opts.user, id: fromB64u(opts.user.id) },
+          pubKeyCredParams: opts.pubKeyCredParams,
+          authenticatorSelection: opts.authenticatorSelection,
+          timeout: opts.timeout,
+          attestation: opts.attestation,
+          excludeCredentials: (opts.excludeCredentials || []).map((c) => ({
+            type: "public-key", id: fromB64u(c.id),
+          })),
+        },
+      });
+      if (!cred) throw new Error("cancelled");
+      const r = await fetch(base + "/passkey/verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challenge: opts.challenge,
+          credential_id: cred.id,
+          public_key: b64u(cred.response.getPublicKey()),
+          device_label: "iPhone",
+        }),
+      });
+      if (r.ok) { try { localStorage.setItem("ml_has_passkey", "1"); } catch (e) {} }
+    } catch (e) {
+      // Declining is a legitimate choice; remember it and stop asking.
+      try { localStorage.setItem("ml_passkey_declined", "1"); } catch (e2) {}
+    }
+  }, []);
+
   const handleLogin = (u) => {
     // id is what every /api/portal route is keyed on; dropping it here is
     // what left the app talking to its own mock data.
     setUser({ id: u.id || null, name: u.name || u.email || "there", email: u.email || null, needs: u.needs || [] });
     setRoute("home");
+    if (u.id && u.id !== DEMO_CUSTOMER_ID) offerFaceId(u.id);
   };
 
   // Signing in blank opens the real app on a real account.
