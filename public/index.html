@@ -619,6 +619,19 @@
   .qf-slot:hover { border-color: rgba(74,143,181,0.5); }
   .qf-slot input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
   .qf-slot.selected { border-color: var(--teal); background: var(--teal); color: #fff; box-shadow: 0 6px 18px -6px rgba(74,143,181,0.5); }
+  .qf-hint { margin: -2px 0 8px; font-size: 12.5px; line-height: 1.45; color: rgba(28,46,68,0.6); }
+  .qf-days { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .qf-day {
+    display: block; text-align: center; padding: 10px 6px; border-radius: 10px;
+    border: 1.5px solid rgba(28,46,68,0.14); background: #fafcfd; color: var(--navy);
+    font-size: 13.5px; font-weight: 600; cursor: pointer; user-select: none;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .qf-day:hover { border-color: rgba(74,143,181,0.5); }
+  .qf-day input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+  .qf-day.selected { border-color: var(--teal); background: var(--teal); color: #fff; box-shadow: 0 6px 18px -6px rgba(74,143,181,0.5); }
+  .qf-day.full { grid-column: 1 / -1; }
+  @media (max-width: 420px) { .qf-days { grid-template-columns: 1fr 1fr; } }
   .qf-submit {
     width: 100%; margin-top: 6px; background: var(--teal); color: #fff; border: 0;
     padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; font-family: inherit;
@@ -769,11 +782,25 @@
           </div>
           <div class="qf-field full">
             <label>Preferred Visit Time</label>
+            <p class="qf-hint">We quote in two-hour windows rather than exact times because every property takes a different amount of time to walk and measure, and we would rather arrive unhurried than watch a clock.</p>
             <div class="qf-slots" id="qfSlots">
               <label class="qf-slot"><input type="radio" name="qf-timeslot" value="12 PM – 2 PM" required="">12 PM – 2 PM</label>
               <label class="qf-slot"><input type="radio" name="qf-timeslot" value="2 PM – 4 PM">2 PM – 4 PM</label>
               <label class="qf-slot"><input type="radio" name="qf-timeslot" value="4 PM – 6 PM">4 PM – 6 PM</label>
               <label class="qf-slot"><input type="radio" name="qf-timeslot" value="6 PM – 8 PM">6 PM – 8 PM</label>
+            </div>
+          </div>
+          <div class="qf-field full">
+            <label>Preferred Days</label>
+            <p class="qf-hint">Select the days that work best for you — pick as many as you like.</p>
+            <div class="qf-days" id="qfDays">
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Monday">Monday</label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Tuesday">Tuesday</label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Wednesday">Wednesday</label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Thursday">Thursday</label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Friday">Friday</label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Saturday">Saturday</label>
+              <label class="qf-day full"><input type="checkbox" name="qf-day" value="Sunday">Sunday</label>
             </div>
           </div>
         </div>
@@ -784,7 +811,7 @@
       <div class="qf-success" id="qfSuccess">
         <div class="check"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
         <h3>You're all set!</h3>
-        <p>Got it! Wayne, our AI assistant, will text you within a minute to lock in your quote visit. 🌱</p>
+        <p>Got it! Nora, our scheduling assistant, will text you in a minute to confirm your quote visit. 🌱</p>
       </div>
     </div>
   </div>
@@ -1146,6 +1173,18 @@
       l.classList.toggle('selected', l.querySelector('input').checked);
     });
   });
+
+  // Day preferences are a multi-select: Nora reads the chosen days back in her
+  // first text so the customer confirms a real slot instead of ignoring a blast.
+  const qfDays = document.getElementById('qfDays');
+  qfDays.addEventListener('change', () => {
+    qfDays.querySelectorAll('.qf-day').forEach(l => {
+      l.classList.toggle('selected', l.querySelector('input').checked);
+    });
+  });
+  function selectedDays() {
+    return Array.from(qfDays.querySelectorAll('input[name="qf-day"]:checked')).map(i => i.value);
+  }
   const qfSubmitBtn = quoteForm.querySelector('.qf-submit');
   const qfError = document.getElementById('qfError');
   quoteForm.addEventListener('submit', async (e) => {
@@ -1163,6 +1202,7 @@
           phone: document.getElementById('qf-phone').value,
           address: document.getElementById('qf-address').value,
           requested_window: (quoteForm.querySelector('input[name="qf-timeslot"]:checked') || {}).value || '',
+          requested_days: selectedDays(),
           company: document.getElementById('qf-company').value,
         }),
       });
