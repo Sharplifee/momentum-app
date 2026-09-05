@@ -723,6 +723,48 @@
   .app-view .app-close { position: fixed; top: calc(env(safe-area-inset-top) + 12px); right: 14px; z-index: 4; background: rgba(28,46,68,0.72); color: #fff; border: 0; border-radius: 999px; width: 40px; height: 40px; font-size: 20px; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.25); backdrop-filter: blur(6px); }
 </style>
 
+
+<style id="qf-form-fixes">
+/* Preferred days: seven equal columns so no two days can read as one option.
+   Abbreviated on screen, full names still announced to screen readers. */
+.qf-days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 6px !important;
+}
+.qf-day {
+  padding: 10px 2px !important;
+  text-align: center;
+  font-size: 12.5px !important;
+  letter-spacing: 0.01em;
+  min-height: 44px;                 /* a comfortable tap target */
+  display: flex; align-items: center; justify-content: center;
+}
+.qf-day.full { grid-column: auto !important; }   /* Sunday no longer spans */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Even rhythm down the form. Fields were 18px apart while the groups inside
+   them set their own gaps, so the spacing read as uneven. */
+.quote-form .qf-row { display: grid; gap: 0; }
+.quote-form .qf-field { margin-bottom: 20px !important; }
+.quote-form .qf-field:last-child { margin-bottom: 0 !important; }
+.quote-form .qf-field > label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+.quote-form .qf-hint { margin: 0 0 10px !important; }
+.quote-form .qf-slots { gap: 8px !important; }
+.quote-form .qf-submit { margin-top: 22px; }
+
+@media (max-width: 380px) {
+  /* Only the very narrowest phones need two rows; still one day per cell. */
+  .qf-days { grid-template-columns: repeat(4, 1fr) !important; }
+}
+</style>
 </head>
 <body>
 
@@ -794,13 +836,13 @@
             <label>Preferred Days</label>
             <p class="qf-hint">Select the days that work best for you — pick as many as you like.</p>
             <div class="qf-days" id="qfDays">
-              <label class="qf-day"><input type="checkbox" name="qf-day" value="Monday">Monday</label>
-              <label class="qf-day"><input type="checkbox" name="qf-day" value="Tuesday">Tuesday</label>
-              <label class="qf-day"><input type="checkbox" name="qf-day" value="Wednesday">Wednesday</label>
-              <label class="qf-day"><input type="checkbox" name="qf-day" value="Thursday">Thursday</label>
-              <label class="qf-day"><input type="checkbox" name="qf-day" value="Friday">Friday</label>
-              <label class="qf-day"><input type="checkbox" name="qf-day" value="Saturday">Saturday</label>
-              <label class="qf-day full"><input type="checkbox" name="qf-day" value="Sunday">Sunday</label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Monday"><span aria-hidden="true">Mon</span><span class="sr-only">Monday</span></label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Tuesday"><span aria-hidden="true">Tue</span><span class="sr-only">Tuesday</span></label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Wednesday"><span aria-hidden="true">Wed</span><span class="sr-only">Wednesday</span></label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Thursday"><span aria-hidden="true">Thu</span><span class="sr-only">Thursday</span></label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Friday"><span aria-hidden="true">Fri</span><span class="sr-only">Friday</span></label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Saturday"><span aria-hidden="true">Sat</span><span class="sr-only">Saturday</span></label>
+              <label class="qf-day"><input type="checkbox" name="qf-day" value="Sunday"><span aria-hidden="true">Sun</span><span class="sr-only">Sunday</span></label>
             </div>
           </div>
         </div>
