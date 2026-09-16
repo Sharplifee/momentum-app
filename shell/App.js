@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   Platform,
   RefreshControl,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { WebView } from "react-native-webview";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
@@ -83,6 +85,9 @@ function pushBridgeScript(token) {
   })(); true;`;
 }
 
+// Hold the system splash until the page is on screen.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   const webRef = useRef(null);
   const [pushToken, setPushToken] = useState(null);
@@ -128,8 +133,34 @@ export default function App() {
   const onLoadEnd = useCallback(() => {
     setLoading(false);
     setRefreshing(false);
+    // First paint is on screen — drop the splash over it.
+    SplashScreen.hideAsync().catch(() => {});
     if (pushToken && webRef.current) webRef.current.injectJavaScript(pushBridgeScript(pushToken));
   }, [pushToken]);
+
+  // Reload only when the deployed page has actually changed. A HEAD request
+  // is a few hundred bytes; the ETag changes on every deploy.
+  const lastEtag = useRef(null);
+  const reloadIfChanged = useCallback(async () => {
+    try {
+      const r = await fetch(APP_URL, { method: "HEAD", cache: "no-store" });
+      const etag = r.headers.get("etag");
+      if (etag && lastEtag.current && etag !== lastEtag.current) {
+        webRef.current?.reload();
+      }
+      if (etag) lastEtag.current = etag;
+    } catch (e) {
+      // Offline or blocked — the cached page is still the right thing to show.
+    }
+  }, []);
+
+  useEffect(() => {
+    reloadIfChanged();
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") reloadIfChanged();
+    });
+    return () => sub.remove();
+  }, [reloadIfChanged]);
 
   const reload = useCallback(() => {
     setFailed(false);
@@ -188,6 +219,7 @@ export default function App() {
         <WebView
           ref={webRef}
           source={{ uri: APP_URL }}
+          cacheEnabled
           style={styles.fill}
           // The portal writes a cookie session; without shared storage the
           // customer would be asked to sign in on every cold start.
@@ -212,11 +244,6 @@ export default function App() {
           applicationNameForUserAgent={`MomentumCustomer/${APP_VERSION}`}
           keyboardDisplayRequiresUserAction={false}
         />
-        {loading && (
-          <View style={styles.loading} pointerEvents="none">
-            <ActivityIndicator size="large" color="#7FB8BE" />
-          </View>
-        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );

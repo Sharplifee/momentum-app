@@ -18,7 +18,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.momentumlandscapingut.customer",
-      "buildNumber": "2",
+      "buildNumber": "11",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -43,7 +43,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#7FB8BE"
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "extra": {
       "appUrl": "https://momentumlandscapingut.com/app"
