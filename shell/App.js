@@ -87,6 +87,9 @@ function pushBridgeScript(token) {
 
 // Hold the system splash until the page is on screen.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+// Hard ceiling: whatever happens, the splash comes down. A page that is still
+// loading is far better than a splash that never leaves.
+setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 2500);
 
 export default function App() {
   const webRef = useRef(null);
@@ -227,6 +230,7 @@ export default function App() {
           thirdPartyCookiesEnabled
           originWhitelist={["https://*"]}
           onShouldStartLoadWithRequest={onShouldStartLoad}
+          onLoad={() => { SplashScreen.hideAsync().catch(() => {}); }}
           onLoadEnd={onLoadEnd}
           onError={() => {
             setLoading(false);

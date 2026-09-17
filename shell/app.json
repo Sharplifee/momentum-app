@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MomentumLAND",
-    "slug": "momentum-customer",
+    "slug": "momentum-landscaping",
     "scheme": "momentum",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.momentumlandscapingut.customer",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -44,10 +44,16 @@
           "color": "#7FB8BE"
         }
       ],
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
-      "appUrl": "https://momentumlandscapingut.com/app"
-    }
+      "appUrl": "https://momentumlandscapingut.com/app",
+      "eas": {
+        "projectId": "558b114c-27a0-499e-8d69-4215a7821e3e"
+      }
+    },
+    "owner": "sharplifees-organization"
   }
 }
