@@ -9,16 +9,15 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0F1720",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0F1720"
+      "backgroundColor": "#0F1720",
+      "resizeMode": "contain"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "bundleIdentifier": "com.momentumlandscapingut.customer",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
