@@ -1833,7 +1833,7 @@ function useWeather(address, date) {
 }
 async function crewReply({ history, customerName = "Jane", crew = "Crew", nextDate }) {
   const dateStr = nextDate ? fmtShort(nextDate) : "Thursday";
-  const persona = `You are ${crew}, the friendly crew lead at Momentum Landscaping, a residential lawn-care company in South Jordan, Utah. You text customers from your phone. Replies must be 1\u20132 short sentences, warm and professional, no emojis unless natural. Their next scheduled service is ${dateStr} at 10:30 AM. The customer's name is ${customerName}. Reply to their most recent message. Never break character. Never mention you are AI.`;
+  const persona = `You are Norma, the AI scheduling assistant for Momentum Landscaping, a residential lawn-care company in South Jordan, Utah. If the customer asks whether you are a person, or on your first reply in a new conversation, say plainly that you are Momentum\u2019s AI assistant. Replies must be 1\u20132 short sentences, warm and professional, no emojis unless natural. Their next scheduled service is ${dateStr} at 10:30 AM. The customer\u2019s name is ${customerName}. Reply to their most recent message. A crew member or Momentum staff can take over at any time; if the customer asks for a human, say you will pass it to the crew.`;
   const transcript = history.map((m) => m.from === "me" ? `${customerName}: ${m.text}` : `${m.name || crew}: ${m.text}`).join("\n");
   const prompt = `${persona}
 
@@ -2490,7 +2490,7 @@ window.ScheduleScreen = ScheduleScreen;
     // Nora and a human crew member are not the same correspondent, and the row
     // already says which is which. Labelling everything "Crew" made an AI reply
     // look like it came from a person.
-    name: m.sender === "customer" ? void 0 : m.sender === "nora" ? "Nora" : "Crew",
+    name: m.sender === "customer" ? void 0 : m.sender === "nora" ? "Norma (AI)" : "Crew",
     text: m.body,
     time: new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
   }), []);
@@ -2806,7 +2806,7 @@ function QuoteScreen({ onBack }) {
       }
     },
     sl
-  ))), err && /* @__PURE__ */ React.createElement("div", { className: "qf-err" }, err), /* @__PURE__ */ React.createElement("button", { className: "qf-cta", type: "submit", disabled: busy }, busy ? "Submitting\u2026" : "Request My Personal Quote"))), submitted && /* @__PURE__ */ React.createElement("div", { className: "quote-success" }, /* @__PURE__ */ React.createElement("div", { className: "qs-check" }, Icon.check), /* @__PURE__ */ React.createElement("div", { className: "qs-title" }, "You're all set!"), /* @__PURE__ */ React.createElement("div", { className: "qs-sub" }, "Got it! Nora, our AI assistant, will text you within a minute to lock in your quote visit. \u{1F331}"), /* @__PURE__ */ React.createElement("button", { className: "qs-secondary", onClick: onBack }, "Back to app")));
+  ))), err && /* @__PURE__ */ React.createElement("div", { className: "qf-err" }, err), /* @__PURE__ */ React.createElement("button", { className: "qf-cta", type: "submit", disabled: busy }, busy ? "Submitting\u2026" : "Request My Personal Quote"))), submitted && /* @__PURE__ */ React.createElement("div", { className: "quote-success" }, /* @__PURE__ */ React.createElement("div", { className: "qs-check" }, Icon.check), /* @__PURE__ */ React.createElement("div", { className: "qs-title" }, "You're all set!"), /* @__PURE__ */ React.createElement("div", { className: "qs-sub" }, "Got it! Norma, our AI assistant, will text you within a minute to lock in your quote visit. \u{1F331}"), /* @__PURE__ */ React.createElement("button", { className: "qs-secondary", onClick: onBack }, "Back to app")));
 }
 window.QuoteScreen = QuoteScreen;
 </script>
