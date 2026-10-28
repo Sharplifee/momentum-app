@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /** The card on file, as Stripe knows it. Never the number — brand and last four. */
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "not found" }, origin, 404);
@@ -28,3 +29,6 @@ export async function GET(req: NextRequest) {
     method: card ? { brand: card.brand, last4: card.last4, exp: `${card.exp_month}/${card.exp_year}` } : null,
   }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/payments/method", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/payments/method", __OPTIONS);

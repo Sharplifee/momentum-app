@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /**
@@ -15,7 +16,7 @@ export async function OPTIONS(req: NextRequest) {
  * thing we actually have for every customer and the thing they have proved
  * they control.
  */
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { email, token, password } = await req.json().catch(() => ({}));
   const db = supabaseAdmin();
@@ -59,3 +60,6 @@ export async function POST(req: NextRequest) {
   // Same answer whether or not the email is on file.
   return withCors({ sent: true }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/password/reset", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/password/reset", __OPTIONS);

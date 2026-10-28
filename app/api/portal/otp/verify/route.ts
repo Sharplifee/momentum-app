@@ -4,12 +4,13 @@ import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { toE164 } from "@/lib/phone";
 import { logAutomation } from "@/lib/automation";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
 // The app is a static page on another origin; without this the browser blocks
 // the request before it is ever sent.
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
@@ -20,7 +21,7 @@ function hashCode(code: string, phone: string): string {
   return crypto.createHash("sha256").update(`${code}:${phone}:${process.env.CRON_SECRET}`).digest("hex");
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const { phone: rawPhone, code } = await req.json().catch(() => ({}));
   const phone = toE164(String(rawPhone ?? ""));
   if (!phone || !code) return withCors({ error: "phone and code required" }, req.headers.get("origin"), 400);
@@ -105,3 +106,6 @@ export async function POST(req: NextRequest) {
   // client completes the session with verifyOtp({ type:'magiclink', token_hash })
   return withCors({ ok: true, token_hash: linkData.properties?.hashed_token, email: placeholderEmail }, req.headers.get("origin"));
 }
+
+export const POST = withEventLog("POST /api/portal/otp/verify", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/otp/verify", __OPTIONS);

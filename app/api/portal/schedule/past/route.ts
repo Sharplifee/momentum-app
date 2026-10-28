@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom, VISIT_INCLUDES } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 
 /** Today where the work happens. UTC rolls over at 6pm Mountain, which moved a
  *  visit out of "upcoming" and into "past" while the crew was still on site. */
@@ -9,10 +10,10 @@ const localToday = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" });
 
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "not found" }, origin, 404);
@@ -29,3 +30,6 @@ export async function GET(req: NextRequest) {
     })),
   }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/schedule/past", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/schedule/past", __OPTIONS);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSign } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 export const revalidate = 900; // Apple rate-limits; a 15-minute forecast is plenty
@@ -305,7 +306,7 @@ async function fromMetNo(lat: number, lng: number) {
 
 
 
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const lat = Number(req.nextUrl.searchParams.get("lat"));
   const lng = Number(req.nextUrl.searchParams.get("lng"));
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
@@ -373,3 +374,5 @@ export async function GET(req: NextRequest) {
     headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" },
   });
 }
+
+export const GET = withEventLog("GET /api/weather", __GET);

@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /**
  * Starts adding a card. Returns a Stripe client secret; the card details never
  * touch our server, which is the whole point of doing it this way.
  */
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const b = await req.json().catch(() => ({}));
   if (!b?.customer_id) return withCors({ error: "customer_id required" }, origin, 400);
@@ -48,3 +49,6 @@ export async function POST(req: NextRequest) {
   return withCors({ client_secret: intent.client_secret,
                     publishable_key: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/payments/setup-intent", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/payments/setup-intent", __OPTIONS);

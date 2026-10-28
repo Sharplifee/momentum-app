@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 
@@ -15,7 +16,7 @@ export async function OPTIONS(req: NextRequest) {
  * this accepts whatever it has so far, so a half-finished answer is still
  * progress rather than a lost lead.
  */
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { customer_id, full_name, address, city } = await req.json().catch(() => ({}));
   if (!customer_id) return withCors({ error: "customer_id required" }, origin, 400);
@@ -58,3 +59,6 @@ export async function POST(req: NextRequest) {
 
   return withCors({ ok: true, complete: done, needs: missing, name: c?.full_name ?? null }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/onboard", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/onboard", __OPTIONS);

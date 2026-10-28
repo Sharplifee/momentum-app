@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 
@@ -18,7 +19,7 @@ export async function OPTIONS(req: NextRequest) {
  * so every customer's billing screen came back empty with a balance of zero,
  * including anyone who actually owed money. It read as "all paid".
  */
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "not found" }, origin, 404);
@@ -53,3 +54,6 @@ export async function GET(req: NextRequest) {
 
   return withCors({ items, balance: Math.round(balance * 100) / 100 }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/payments/invoices", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/payments/invoices", __OPTIONS);

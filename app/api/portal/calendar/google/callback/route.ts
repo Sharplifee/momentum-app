@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
 /** Where Google sends the customer back once they have agreed. */
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
 
@@ -55,3 +56,5 @@ display:grid;place-items:center;min-height:100dvh;margin:0;padding:24px;text-ali
 
   return page("Calendar connected", "Your visits will appear in Google Calendar. You can close this.", true);
 }
+
+export const GET = withEventLog("GET /api/portal/calendar/google/callback", __GET);

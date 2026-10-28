@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -22,14 +23,14 @@ export const runtime = "nodejs";
 
 const CUSTOMER_BUNDLE = "com.momentumlandscapingut.customer";
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,DELETE,OPTIONS" },
   });
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { customer_id, token, bundle_id, app_version, platform } = await req.json().catch(() => ({}));
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
   return withCors({ ok: true }, origin);
 }
 
-export async function DELETE(req: NextRequest) {
+async function __DELETE(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { customer_id, token } = await req.json().catch(() => ({}));
   if (!token) return withCors({ error: "token required" }, origin, 400);
@@ -89,3 +90,7 @@ export async function DELETE(req: NextRequest) {
 
   return withCors({ ok: true }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/push", __POST);
+export const DELETE = withEventLog("DELETE /api/portal/push", __DELETE);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/push", __OPTIONS);

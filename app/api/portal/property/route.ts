@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -15,14 +16,14 @@ export const runtime = "nodejs";
  * save would have answered 401 even if it had.
  */
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "GET,POST,OPTIONS" },
   });
 }
 
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const customer = await customerFrom(req);
   if (!customer) return withCors({ error: "unauthorized" }, origin, 401);
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
   return withCors({ property: property ?? null }, origin);
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const customer = await customerFrom(req);
   if (!customer) return withCors({ error: "unauthorized" }, origin, 401);
@@ -80,3 +81,7 @@ export async function POST(req: NextRequest) {
 
   return withCors({ ok: true, property_id: property.id }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/property", __GET);
+export const POST = withEventLog("POST /api/portal/property", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/property", __OPTIONS);

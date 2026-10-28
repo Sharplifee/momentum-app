@@ -4,6 +4,7 @@ import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { sendSms } from "@/lib/sms";
 import { logAutomation } from "@/lib/automation";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -14,14 +15,14 @@ export const runtime = "nodejs";
  * which the app has never had — so every reschedule answered 401 and the button
  * silently did nothing. Same auth as the rest of the portal API now.
  */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
   });
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const caller = await customerFrom(req);
   if (!caller) return withCors({ error: "unauthorized" }, origin, 401);
@@ -74,3 +75,6 @@ export async function POST(req: NextRequest) {
   await logAutomation({ trigger: "portal.reschedule.auto", ref_id: job_id, detail: { to: requested_date } });
   return withCors({ ok: true, message: confirmation }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/reschedule", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/reschedule", __OPTIONS);

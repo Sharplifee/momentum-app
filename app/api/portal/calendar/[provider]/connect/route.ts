@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,7 @@ export const runtime = "nodejs";
  * nothing. Apple and Google work differently and this is the single door for
  * both, so the screen does not have to know which is which.
  */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "GET,POST,OPTIONS" },
@@ -55,9 +56,13 @@ async function handle(req: NextRequest, provider: string) {
   return withCors({ error: "That calendar isn't supported yet." }, origin, 400);
 }
 
-export async function GET(req: NextRequest, ctx: { params: { provider: string } }) {
+async function __GET(req: NextRequest, ctx: { params: { provider: string } }) {
   return handle(req, ctx.params.provider);
 }
-export async function POST(req: NextRequest, ctx: { params: { provider: string } }) {
+async function __POST(req: NextRequest, ctx: { params: { provider: string } }) {
   return handle(req, ctx.params.provider);
 }
+
+export const GET = withEventLog("GET /api/portal/calendar/[provider]/connect", __GET);
+export const POST = withEventLog("POST /api/portal/calendar/[provider]/connect", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/calendar/[provider]/connect", __OPTIONS);

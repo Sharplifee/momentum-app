@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -29,11 +30,11 @@ const norm = (p: string) => {
 
 const valid = (e164: string) => /^\+1\d{10}$/.test(e164);
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { phone, code, email, password } = await req.json().catch(() => ({}));
 
@@ -228,3 +229,6 @@ function needsFrom(c: { full_name: string | null; onboarding_complete: boolean }
   if (!c.onboarding_complete) missing.push("address");
   return missing;
 }
+
+export const POST = withEventLog("POST /api/portal/auth", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/auth", __OPTIONS);

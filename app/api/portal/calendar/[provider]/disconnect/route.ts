@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -9,14 +10,14 @@ export const runtime = "nodejs";
  * Disconnect a calendar. Also missing entirely — the button answered 404, so a
  * customer could connect a calendar and then had no way to undo it.
  */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
   });
 }
 
-export async function POST(req: NextRequest, ctx: { params: { provider: string } }) {
+async function __POST(req: NextRequest, ctx: { params: { provider: string } }) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "unauthorized" }, origin, 401);
@@ -36,3 +37,6 @@ export async function POST(req: NextRequest, ctx: { params: { provider: string }
       : undefined,
   }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/calendar/[provider]/disconnect", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/calendar/[provider]/disconnect", __OPTIONS);

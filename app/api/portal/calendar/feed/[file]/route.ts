@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,7 @@ export const runtime = "nodejs";
  * the customer's calendar without anyone pressing sync. That is why Apple needs
  * no OAuth: the URL is the connection.
  */
-export async function GET(_req: NextRequest, { params }: { params: { file: string } }) {
+async function __GET(_req: NextRequest, { params }: { params: { file: string } }) {
   const id = (params.file || "").replace(/\.ics$/i, "");
   const db = supabaseAdmin();
   const { data: c } = await db.from("customers").select("id, full_name").eq("id", id).maybeSingle();
@@ -56,3 +57,5 @@ export async function GET(_req: NextRequest, { params }: { params: { file: strin
     },
   });
 }
+
+export const GET = withEventLog("GET /api/portal/calendar/feed/[file]", __GET);

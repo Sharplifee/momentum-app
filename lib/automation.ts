@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { logEvent } from "@/lib/eventLog";
 
 /**
  * Audit trail for anything the app does on a customer's behalf.
@@ -16,6 +17,8 @@ export async function logAutomation(entry: {
   detail?: unknown;
   error?: string | null;
 }) {
+  void logEvent({ event_type: "job_step", name: `automation.${entry.trigger}`, status: entry.status ?? (entry.error ? "fail" : "ok"), surface: "backend", actor_type: "service",
+    error_message: entry.error ?? null, payload: { ref_id: entry.ref_id ?? null, detail: entry.detail ?? null } });
   try {
     await supabaseAdmin().from("automation_log").insert({
       trigger: entry.trigger,

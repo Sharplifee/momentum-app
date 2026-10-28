@@ -5,12 +5,13 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendSms } from "@/lib/sms";
 import { toE164 } from "@/lib/phone";
 import { logAutomation } from "@/lib/automation";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
 // The app is a static page on another origin; without this the browser blocks
 // the request before it is ever sent.
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
@@ -21,7 +22,7 @@ function hashCode(code: string, phone: string): string {
   return crypto.createHash("sha256").update(`${code}:${phone}:${process.env.CRON_SECRET}`).digest("hex");
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const { phone: rawPhone } = await req.json().catch(() => ({}));
   const phone = toE164(String(rawPhone ?? ""));
   if (!phone) return withCors({ error: "That doesn't look like a US phone number." }, req.headers.get("origin"), 400);
@@ -74,3 +75,6 @@ export async function POST(req: NextRequest) {
   await logAutomation({ trigger: "portal.otp.sent", detail: { phone, dry_run: (result as any).dry_run ?? false, proved: proveOnce } });
   return withCors({ ok: true }, req.headers.get("origin"));
 }
+
+export const POST = withEventLog("POST /api/portal/otp/send", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/otp/send", __OPTIONS);

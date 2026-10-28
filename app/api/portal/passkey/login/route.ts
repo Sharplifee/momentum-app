@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, createVerify, createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -15,14 +16,14 @@ export const runtime = "nodejs";
  * holds, and asking who they are before proving it would let anyone enumerate
  * accounts.
  */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "GET,POST,OPTIONS" },
   });
 }
 
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const challenge = randomBytes(32).toString("base64url");
   await supabaseAdmin().from("webauthn_challenges").insert({ challenge, kind: "login" });
@@ -38,7 +39,7 @@ function b64urlToBuf(s: string) {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { challenge, credential_id, authenticator_data, client_data_json, signature } =
     await req.json().catch(() => ({} as any));
@@ -119,3 +120,7 @@ export async function POST(req: NextRequest) {
     greeting: first ? `Welcome back, ${first}` : "You're in",
   }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/passkey/login", __GET);
+export const POST = withEventLog("POST /api/portal/passkey/login", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/passkey/login", __OPTIONS);

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 
@@ -17,7 +18,7 @@ export async function OPTIONS(req: NextRequest) {
  * The state nonce is issued here and checked on the way back, which is what
  * stops someone attaching their own calendar to another customer's account.
  */
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const customerId = req.nextUrl.searchParams.get("customer_id");
   if (!customerId) return withCors({ error: "customer_id required" }, origin, 400);
@@ -49,3 +50,6 @@ export async function GET(req: NextRequest) {
 
   return withCors({ url: url.toString() }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/calendar/google/start", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/calendar/google/start", __OPTIONS);

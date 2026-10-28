@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
 
 /**
@@ -36,14 +37,14 @@ const toCode = (c?: string | number | null) => {
   return WMO[name] !== undefined ? WMO[name] : 2;
 };
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /**
  * Forecast for a service date, by address. Thin wrapper over the CRM's own
  * weather route so the app does not need coordinates it never had.
  */
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const address = req.nextUrl.searchParams.get("address") ?? "";
   const date = req.nextUrl.searchParams.get("date") ?? "";
@@ -158,3 +159,6 @@ export async function GET(req: NextRequest) {
     days,
   }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/weather", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/weather", __OPTIONS);

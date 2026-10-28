@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /** The quote request form. Creates a lead the CRM already knows how to handle. */
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const b = await req.json().catch(() => ({}));
   const { full_name, phone, address, city, requested_window } = b ?? {};
@@ -26,3 +27,6 @@ export async function POST(req: NextRequest) {
     message: "Got it. Nora will text you shortly to arrange your quote visit.",
   }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/quotes", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/quotes", __OPTIONS);

@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
 /** Which devices this customer has Face ID set up on, and removing one. */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "GET,DELETE,OPTIONS" },
   });
 }
 
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "unauthorized" }, origin, 401);
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
   return withCors({ passkeys: data ?? [] }, origin);
 }
 
-export async function DELETE(req: NextRequest) {
+async function __DELETE(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "unauthorized" }, origin, 401);
@@ -34,3 +35,7 @@ export async function DELETE(req: NextRequest) {
   await supabaseAdmin().from("customer_passkeys").delete().eq("id", id).eq("customer_id", c.id);
   return withCors({ ok: true }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/passkey/list", __GET);
+export const DELETE = withEventLog("DELETE /api/portal/passkey/list", __DELETE);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/passkey/list", __OPTIONS);

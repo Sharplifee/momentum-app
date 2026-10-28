@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { logAutomation } from "@/lib/automation";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 /**
  * Nora lives in the CRM and stays there.
  *
@@ -75,7 +76,7 @@ async function threadFor(customerId: string, phone: string | null) {
   return null;
 }
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: {
@@ -85,7 +86,7 @@ export async function OPTIONS(req: NextRequest) {
   });
 }
 
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const customer = await customerFrom(req);
   if (!customer) return withCors({ error: "unauthorized" }, origin, 401);
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
   return withCors({ messages: messages ?? [], thread_id: thread.id }, origin);
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const customer = await customerFrom(req);
   if (!customer) return withCors({ error: "unauthorized" }, origin, 401);
@@ -167,3 +168,7 @@ export async function POST(req: NextRequest) {
   await logAutomation({ trigger: "portal.message", ref_id: thread.id, detail: { customer: customer.id } });
   return withCors({ ok: true, messages: messages ?? [], thread_id: thread.id }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/messages", __GET);
+export const POST = withEventLog("POST /api/portal/messages", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/messages", __OPTIONS);

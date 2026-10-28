@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 
 /** Today where the work happens. UTC rolls over at 6pm Mountain, which moved a
  *  visit out of "upcoming" and into "past" while the crew was still on site. */
@@ -9,14 +10,14 @@ const localToday = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" });
 
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /**
  * A customer asking for extra work. This does not schedule anything — it
  * raises a request the office picks up, because the price is set in person.
  */
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const body = await req.json().catch(() => ({}));
   const { customer_id, service, note } = body ?? {};
@@ -44,3 +45,6 @@ export async function POST(req: NextRequest) {
 
   return withCors({ ok: true, message: "Thanks — we'll be in touch to look at it." }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/services/request", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/services/request", __OPTIONS);

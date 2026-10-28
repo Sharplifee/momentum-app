@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
 import { customerFrom, VISIT_INCLUDES } from "@/lib/portalAuth";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "not found" }, origin, 404);
@@ -29,3 +30,6 @@ export async function GET(req: NextRequest) {
     days: (data ?? []).map((j) => ({ date: j.scheduled_date, status: j.status })),
   }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/schedule/month", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/schedule/month", __OPTIONS);

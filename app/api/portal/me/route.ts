@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { withCors, corsHeaders } from "@/lib/portalCors";
 import { NextResponse } from "next/server";
+import { withEventLog } from "@/lib/eventLog";
 
 /** Today where the work happens. UTC rolls over at 6pm Mountain, which moved a
  *  visit out of "upcoming" and into "past" while the crew was still on site. */
@@ -11,7 +12,7 @@ const localToday = () =>
 
 export const runtime = "nodejs";
 
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 
@@ -19,7 +20,7 @@ export async function OPTIONS(req: NextRequest) {
  * Everything the customer home screen needs, in one call: who they are, where
  * they live, when the crew is next coming and what that visit includes.
  */
-export async function GET(req: NextRequest) {
+async function __GET(req: NextRequest) {
   const origin = req.headers.get("origin");
   const customerId = req.nextUrl.searchParams.get("customer_id");
   if (!customerId) return withCors({ error: "customer_id required" }, origin, 400);
@@ -56,3 +57,6 @@ export async function GET(req: NextRequest) {
     past: past ?? [],
   }, origin);
 }
+
+export const GET = withEventLog("GET /api/portal/me", __GET);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/me", __OPTIONS);

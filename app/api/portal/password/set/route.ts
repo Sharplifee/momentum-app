@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 export const runtime = "nodejs";
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }
 /**
@@ -12,7 +13,7 @@ export async function OPTIONS(req: NextRequest) {
  * password — because this endpoint is how an account gets its first password
  * and must not become a way to take one over.
  */
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const { customer_id, password, current_password } = await req.json().catch(() => ({}));
   if (!customer_id || !password) {
@@ -44,3 +45,6 @@ export async function POST(req: NextRequest) {
   if (error) return withCors({ error: error.message }, origin, 400);
   return withCors({ ok: true }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/password/set", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/password/set", __OPTIONS);

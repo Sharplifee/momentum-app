@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -14,14 +15,14 @@ export const runtime = "nodejs";
  * Returns a Stripe Checkout URL rather than charging here: card details never
  * touch our servers, which is the whole reason to use Checkout.
  */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
   });
 }
 
-export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
+async function __POST(req: NextRequest, ctx: { params: { id: string } }) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "unauthorized" }, origin, 401);
@@ -74,3 +75,6 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
 
   return withCors({ ok: true, url: json.url }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/payments/invoices/[id]/pay", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/payments/invoices/[id]/pay", __OPTIONS);

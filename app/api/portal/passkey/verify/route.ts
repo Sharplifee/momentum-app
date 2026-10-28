@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { customerFrom } from "@/lib/portalAuth";
 import { corsHeaders, withCors } from "@/lib/portalCors";
+import { withEventLog } from "@/lib/eventLog";
 
 export const runtime = "nodejs";
 
@@ -11,14 +12,14 @@ export const runtime = "nodejs";
  * The private half never leaves the Secure Enclave, so what lands here cannot
  * impersonate the customer even if this table were read in full.
  */
-export async function OPTIONS(req: NextRequest) {
+async function __OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
     headers: { ...corsHeaders(req.headers.get("origin")), "Access-Control-Allow-Methods": "POST,OPTIONS" },
   });
 }
 
-export async function POST(req: NextRequest) {
+async function __POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   const c = await customerFrom(req);
   if (!c) return withCors({ error: "unauthorized" }, origin, 401);
@@ -47,3 +48,6 @@ export async function POST(req: NextRequest) {
 
   return withCors({ ok: true }, origin);
 }
+
+export const POST = withEventLog("POST /api/portal/passkey/verify", __POST);
+export const OPTIONS = withEventLog("OPTIONS /api/portal/passkey/verify", __OPTIONS);
