@@ -646,6 +646,7 @@
   }
   .qf-success h3 { font-size: 22px; margin: 0 0 8px; }
   .qf-success p { color: var(--muted); font-size: 14.5px; margin: 0; }
+  .qf-consent { font-size: 11.5px; line-height: 1.5; opacity: .7; text-align: center; margin: 10px 0 0; }
   .qf-error { display: none; text-align: center; font-size: 13.5px; color: #b3261e; margin-top: 12px; line-height: 1.5; }
   .qf-error.show { display: block; }
   .qf-submit:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -849,12 +850,13 @@
         </div>
         <input type="text" name="company" id="qf-company" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
         <button class="qf-submit" type="submit">Request My Personal Quote</button>
+        <p class="qf-consent">By submitting, you agree to receive text messages from Momentum Landscaping about your quote request and scheduled service. Msg &amp; data rates may apply. Msg frequency varies. Reply STOP to opt out, HELP for help.</p>
         <div class="qf-error" id="qfError" role="alert"></div>
       </form>
       <div class="qf-success" id="qfSuccess">
         <div class="check"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
         <h3>You're all set!</h3>
-        <p>Got it! Nora, our scheduling assistant, will text you in a minute to confirm your quote visit. 🌱</p>
+        <p>Got it! Norma, our scheduling assistant, will text you in a minute to confirm your quote visit. 🌱</p>
       </div>
     </div>
   </div>
@@ -1175,7 +1177,6 @@
         </div>
         <div class="foot-col">
           <h4>Contact</h4>
-          <a href="tel:+18015551234">(385) 595-0085</a>
           <a href="mailto:Admin@momentumlandscapingut.com">Admin@momentumlandscapingut.com</a>
         </div>
       </div>
@@ -1217,7 +1218,7 @@
     });
   });
 
-  // Day preferences are a multi-select: Nora reads the chosen days back in her
+  // Day preferences are a multi-select: Norma reads the chosen days back in her
   // first text so the customer confirms a real slot instead of ignoring a blast.
   const qfDays = document.getElementById('qfDays');
   qfDays.addEventListener('change', () => {
